@@ -5,6 +5,7 @@ description = "MVP for extracting reusable LLM memory from chat logs"
 requires-python = ">=3.11"
 dependencies = [
     "streamlit",
+    "openai",
 ]
 
 [project.optional-dependencies]
@@ -34,3 +35,4 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["integration_llm: marks tests that call real LLM APIs"]
