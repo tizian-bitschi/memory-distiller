@@ -31,6 +31,18 @@ Der MVP soll einen manuellen, aber zuverlässigen Workflow unterstützen:
 
 Automatische Hintergrundprozesse, User-Accounts, Vektordatenbanken und Multi-User-Support gehören nicht zum ersten MVP.
 
+## Erste API-Integration
+
+Der erste konkrete API-Provider für die Umsetzung ist DeepSeek V4.
+
+Geplanter Default:
+
+```text
+deepseek-v4-pro
+```
+
+Prompt-only bleibt als Fallback erhalten. DeepSeek wird über eine austauschbare LLM-Adapter-Schicht integriert und darf nicht direkt in der Streamlit-UI oder Domainlogik verdrahtet werden.
+
 ## Kernprinzipien
 
 - Hohe Precision ist wichtiger als hoher Recall.
@@ -46,6 +58,7 @@ Automatische Hintergrundprozesse, User-Accounts, Vektordatenbanken und Multi-Use
 - Python
 - Streamlit für die MVP-Oberfläche
 - Plain-Text/Markdown-Dateien als Speicherformat
+- DeepSeek V4 als erster API-Provider
 - LLM-Anbieter über eine abstrahierte Adapter-Schicht
 - pytest für Tests
 - ruff und mypy für statische Qualitätssicherung
@@ -62,6 +75,7 @@ Konkrete Paketversionen werden später im `pyproject.toml` festgelegt.
 - [Code-Qualität und Tests](docs/06_quality_and_testing.md)
 - [Privacy und Sicherheit](docs/07_security_and_privacy.md)
 - [Offene Entscheidungen](docs/08_open_decisions.md)
+- [DeepSeek V4 Provider](docs/09_deepseek_provider.md)
 
 ## Nicht-Ziele für den MVP
 
