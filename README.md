@@ -90,3 +90,42 @@ Konkrete Paketversionen werden später im `pyproject.toml` festgelegt.
 ## Lizenz
 
 Noch offen.
+
+## Local Setup
+
+### Requirements
+
+- Python >= 3.11
+
+### Installation
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+### Validation
+
+Run tests:
+
+```bash
+pytest
+```
+
+Run linters:
+
+```bash
+ruff check .
+ruff format --check .
+```
+
+Run type checker:
+
+```bash
+mypy memory_distiller
+```
+
+### Start App
+
+```bash
+streamlit run memory_distiller/app.py
+```
