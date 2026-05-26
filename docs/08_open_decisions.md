@@ -4,23 +4,54 @@ Dieses Dokument sammelt bewusste Entscheidungen, die vor oder während der Imple
 
 ## 1. Prompt-only zuerst oder API-Modus direkt?
 
-Option A: Prompt-only zuerst
+Entscheidung:
 
-- schneller und sicherer
-- keine API-Key-Verwaltung
-- ideal zum Testen der Promptqualität
-- weniger gute UX
+- Prompt-only bleibt als Fallback erhalten.
+- Der erste konkrete API-Provider wird direkt umgesetzt.
+- Provider: DeepSeek V4.
 
-Option B: API-Modus direkt
+Begründung:
 
-- besserer Workflow
-- mehr Implementierungsaufwand
-- Datenschutzhinweise nötig
-- Provider-Abstraktion nötig
+- Der MVP soll praktisch nutzbar sein und nicht nur Prompts erzeugen.
+- Prompt-only ist weiterhin wichtig für sensible Chatverläufe und Debugging.
+- Die Architektur bleibt provider-unabhängig.
 
-Empfehlung für MVP: Prompt-only zuerst, API-Adapter direkt architektonisch vorbereiten.
+## 2. Erster API-Provider
 
-## 2. Merger LLM-basiert oder deterministisch?
+Entscheidung:
+
+```text
+DeepSeek V4
+```
+
+Default-Modell:
+
+```text
+deepseek-v4-pro
+```
+
+Optionales günstigeres Modell:
+
+```text
+deepseek-v4-flash
+```
+
+Nicht verwenden:
+
+```text
+deepseek-chat
+deepseek-reasoner
+```
+
+Begründung:
+
+- Memory-Extraktion und Validierung sind qualitätskritisch.
+- Falsch gespeichertes Memory ist schädlicher als höhere API-Kosten.
+- Veraltende Alias-Modellnamen sollen nicht neu eingebaut werden.
+
+Details: siehe `docs/09_deepseek_provider.md`.
+
+## 3. Merger LLM-basiert oder deterministisch?
 
 Option A: LLM-Merger
 
@@ -36,7 +67,7 @@ Option B: deterministischer Merger
 
 Empfehlung: Im ersten MVP LLM-Merger erlauben, aber Parser und Domainmodell so bauen, dass später ein deterministischer Merger möglich ist.
 
-## 3. Speicherformat Line-Format oder JSON?
+## 4. Speicherformat Line-Format oder JSON?
 
 Option A: Line-Format
 
@@ -53,7 +84,7 @@ Option B: JSON
 
 Empfehlung: Line-Format für Dateien, intern typisierte Python-Objekte.
 
-## 4. Wie streng soll der Parser sein?
+## 5. Wie streng soll der Parser sein?
 
 Option A: sehr streng
 
@@ -68,7 +99,7 @@ Option B: tolerant
 
 Empfehlung: streng parsen, aber gute Fehlermeldungen mit Zeilennummern geben.
 
-## 5. Sollen echte Chatlogs gespeichert werden?
+## 6. Sollen echte Chatlogs gespeichert werden?
 
 Option A: gar nicht speichern
 
@@ -82,7 +113,7 @@ Option B: optional lokal speichern
 
 Empfehlung: im MVP nicht automatisch speichern; optionaler Download/Export nur auf User-Aktion.
 
-## 6. Wie wird Tokenlänge geschätzt?
+## 7. Wie wird Tokenlänge geschätzt?
 
 Option A: einfache Heuristik Zeichen / 4
 
@@ -96,7 +127,7 @@ Option B: modellabhängiger Tokenizer
 
 Empfehlung: zunächst einfache Heuristik, später optional Tokenizer.
 
-## 7. Mehrsprachigkeit
+## 8. Mehrsprachigkeit
 
 Das Projekt entsteht auf Deutsch, aber viele Prompts und Codebegriffe sind Englisch.
 
@@ -112,7 +143,7 @@ Empfehlung:
 - UI Deutsch
 - Prompts Deutsch, solange die Zielnutzung deutschsprachig bleibt
 
-## 8. Projektprofile
+## 9. Projektprofile
 
 MVP ohne Projektprofile, aber mit optionalem Projektname-Feld.
 
@@ -124,7 +155,7 @@ memory/projects/truewrapped.md
 memory/projects/spring-backend.md
 ```
 
-## 9. Evidence-Aufbewahrung
+## 10. Evidence-Aufbewahrung
 
 Offene Frage:
 
@@ -138,7 +169,7 @@ Empfehlung:
 - keine langen Zitate
 - in Prompt-Memory immer entfernen
 
-## 10. Lizenz
+## 11. Lizenz
 
 Noch offen.
 
