@@ -53,11 +53,12 @@
 
 ```
 /opt/memory-distiller/
+├── Dockerfile
 ├── docker-compose.yml
 ├── .env                 # Environment variables (NEVER commit)
-├── app/                 # Application code
-│   └── ...
-└── nginx.conf           # Copied from infra/nginx/
+├── memory_distiller/    # Application code
+├── infra/               # Deployment configs
+└── pyproject.toml
 ```
 
 **Critical security note:** The `.env` file and `.htpasswd-memory-distiller` file must **never** be committed to version control. Both contain sensitive credentials.
@@ -189,10 +190,13 @@ curl -u <USERNAME>:<PASSWORD> -I https://memory.bitschi.org
 
 ```bash
 # Inside container
-docker compose exec app python -c "import streamlit; print('OK')"
+docker compose exec memory-distiller python -c "import streamlit; print('OK')"
 
-# External via Nginx (bypasses auth)
-curl https://memory.bitschi.org/health
+# Local app health
+curl -f http://127.0.0.1:8501/_stcore/health
+
+# External health through Nginx (requires Basic Auth)
+curl -f -u "<USERNAME>:<PASSWORD>" https://memory.bitschi.org/_stcore/health
 ```
 
 ### Nginx Health
@@ -262,7 +266,7 @@ docker compose up -d
 docker compose logs
 
 # Specific service
-docker compose logs app
+docker compose logs memory-distiller
 
 # Follow mode
 docker compose logs -f
@@ -362,7 +366,7 @@ sudo netstat -tlnp | grep -E '80|443'
 
 ```bash
 # Check logs
-docker compose logs app
+docker compose logs memory-distiller
 
 # Inspect container
 docker compose ps

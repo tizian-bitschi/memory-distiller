@@ -20,8 +20,10 @@ dev = [
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["memory_distiller"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["memory_distiller*"]
+exclude = ["tests*", "docs*", "examples*", "infra*"]
 
 [tool.ruff]
 line-length = 100
