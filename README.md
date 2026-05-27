@@ -130,6 +130,13 @@ See [docs/known_limitations.md](docs/known_limitations.md) for current limitatio
 - kein komplexes RAG-System
 - keine Vektordatenbank im ersten Schritt
 
+## CI and Deployment
+
+CI and deployment workflows are defined in `.github/workflows/`.
+
+- [Deployment documentation](infra/deploy/github-actions.md)
+- [VPS deployment guide](infra/deploy/README.md)
+
 ## Future Work
 
 - Streamlit UI refactor: [#7](https://github.com/tizian-bitschi/memory-distiller/issues/7)
