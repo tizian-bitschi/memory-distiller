@@ -18,6 +18,40 @@ Memory Distiller soll nicht einfach Chatverläufe zusammenfassen, sondern wieder
 - offene Klärungen
 - temporärer Kontext mit Ablaufcharakter
 
+## What It Does
+
+Memory Distiller extracts reusable working knowledge from LLM chat logs:
+
+- global work rules
+- project-specific rules
+- technical decisions
+- style and source preferences
+- avoidance rules
+- open questions
+- temporary context with expiration
+
+## Current MVP Capabilities
+
+The MVP supports two modes:
+
+**Prompt-only mode** (no API key required):
+- Extract memory candidates from chat logs via generated prompts
+- User runs the prompts externally in their LLM chat
+- User pastes the LLM response back into the app
+- App parses and processes the response
+
+**API mode with DeepSeek** (requires `DEEPSEEK_API_KEY`):
+- Runs the full pipeline automatically
+- Extract candidates, validate with LLM, merge results
+- Compress into prompt-friendly format
+
+**Shared features**:
+- Streamlit UI with 6-tab pipeline
+- Upload `.txt`, `.md`, `.markdown` files
+- Session-only uploads (no hidden file writes)
+- Download results as artifacts
+- Global and project-specific memory separation
+
 ## MVP-Ziel
 
 Der MVP soll einen manuellen, aber zuverlässigen Workflow unterstützen:
@@ -76,6 +110,15 @@ Konkrete Paketversionen werden später im `pyproject.toml` festgelegt.
 - [Privacy und Sicherheit](docs/07_security_and_privacy.md)
 - [Offene Entscheidungen](docs/08_open_decisions.md)
 - [DeepSeek V4 Provider](docs/09_deepseek_provider.md)
+- [Known Limitations](docs/known_limitations.md)
+
+## Usage
+
+See [docs/usage.md](docs/usage.md) for detailed usage instructions.
+
+See [examples/README.md](examples/README.md) for a walkthrough with synthetic data.
+
+See [docs/known_limitations.md](docs/known_limitations.md) for current limitations.
 
 ## Nicht-Ziele für den MVP
 
@@ -86,6 +129,12 @@ Konkrete Paketversionen werden später im `pyproject.toml` festgelegt.
 - keine automatische Memory-Injektion in fremde LLM-Tools
 - kein komplexes RAG-System
 - keine Vektordatenbank im ersten Schritt
+
+## Future Work
+
+- Streamlit UI refactor: [#7](https://github.com/tizian-bitschi/memory-distiller/issues/7)
+- Production deployment with Docker/Nginx: [#8](https://github.com/tizian-bitschi/memory-distiller/issues/8)
+- GitHub Actions deployment workflow: [#9](https://github.com/tizian-bitschi/memory-distiller/issues/9)
 
 ## Lizenz
 

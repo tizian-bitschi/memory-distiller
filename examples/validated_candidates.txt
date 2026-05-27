@@ -1,0 +1,9 @@
+ID|VERDICT|ACTION|TARGET|SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|REASON
+1|KEEP|ADD|-|G|PREF|H|D|Answer in German.|User explicitly stated preference|Valid global preference
+2|KEEP|ADD|-|P:RecipeBot|RULE|H|D|Keep all recipes vegetarian.|User explicitly requested vegetarian recipes|Valid project rule
+3|KEEP|ADD|-|P:RecipeBot|PREF|H|D|Use metric units for measurements.|User rejected imperial units|Valid project preference
+4|KEEP|ADD|-|P:RecipeBot|DECISION|H|D|Use Streamlit for the UI.|User agreed to assistant suggestion|Valid confirmed decision
+5|KEEP|ADD|-|P:RecipeBot|AVOID|H|D|Flag recipes containing peanuts clearly.|User mentioned peanut allergy|Valid safety rule
+6|EDIT|ADD|-|P:RecipeBot|DECISION|H|D|Store recipes as Markdown files in the project repository.|User explicitly chose Markdown over database|Clarified storage location
+7|DROP|IGNORE|-|P:RecipeBot|PREF|L|T|Prefer dark mode UI.|Assistant suggested, user deferred|Not explicitly accepted, too tentative
+8|DROP|IGNORE|-|T|TASK|H|T|Complete basic features by next Friday.|Temporary deadline|Temporary constraint, not permanent memory

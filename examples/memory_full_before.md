@@ -1,0 +1,5 @@
+# MEMORY_FULL
+
+## GLOBAL
+SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
+G|RULE|H|D|Always provide concise answers.|Previous chat
