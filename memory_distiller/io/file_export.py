@@ -56,7 +56,8 @@ def safe_export_filename(name: str, default: str = "export.txt") -> str:
         return default
 
     # Extract just the basename to remove path traversal attempts
-    basename = os.path.basename(name)
+    normalized_name = name.replace("\\", "/")
+    basename = os.path.basename(normalized_name)
 
     # If basename is empty (e.g. name was "/" or just ".."), use default
     if not basename:
