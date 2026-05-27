@@ -7,12 +7,6 @@ from memory_distiller.application.extraction_service import ExtractionService
 from memory_distiller.application.merge_service import MergeService
 from memory_distiller.application.models import PipelinePromptBundle
 from memory_distiller.application.validation_service import ValidationService
-from memory_distiller.prompts.render import (
-    render_compressor_prompt,
-    render_extractor_prompt,
-    render_merger_prompt,
-    render_validator_prompt,
-)
 
 
 class PipelineService:
@@ -65,22 +59,30 @@ class PipelineService:
                 compressor_prompt is None if memory_full is empty.
         """
         # Always render extractor prompt
-        extractor_prompt_str = render_extractor_prompt(existing_memory, chat_log)
+        extractor_prompt_str = self.extraction_service.render_prompt(
+            existing_memory=existing_memory, chat_log=chat_log
+        )
 
         # Validator prompt only if candidates provided
         validator_prompt_str = None
         if candidates:
-            validator_prompt_str = render_validator_prompt(existing_memory, chat_log, candidates)
+            validator_prompt_str = self.validation_service.render_prompt(
+                existing_memory=existing_memory, chat_log=chat_log, candidates=candidates
+            )
 
         # Merger prompt only if validated_candidates provided
         merger_prompt_str = None
         if validated_candidates:
-            merger_prompt_str = render_merger_prompt(existing_memory, validated_candidates)
+            merger_prompt_str = self.merge_service.render_prompt(
+                existing_memory=existing_memory, validated_candidates=validated_candidates
+            )
 
         # Compressor prompt only if memory_full provided
         compressor_prompt_str = None
         if memory_full:
-            compressor_prompt_str = render_compressor_prompt(memory_full, next_context)
+            compressor_prompt_str = self.compression_service.render_prompt(
+                memory_full=memory_full, next_context=next_context
+            )
 
         return PipelinePromptBundle(
             extractor_prompt=extractor_prompt_str,
