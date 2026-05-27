@@ -58,7 +58,6 @@ with st.sidebar:
         index=mode_index,
         key=MODE,
     )
-    st.session_state[MODE] = mode
 
     st.divider()
 
@@ -71,7 +70,6 @@ with st.sidebar:
         index=model_index,
         key=MODEL,
     )
-    st.session_state[MODEL] = model
 
     # Temperature
     temperature = st.number_input(
@@ -82,7 +80,6 @@ with st.sidebar:
         value=st.session_state.get(TEMPERATURE, DEFAULT_TEMPERATURE),
         key=TEMPERATURE,
     )
-    st.session_state[TEMPERATURE] = temperature
 
     # Thinking enabled
     thinking_enabled = st.checkbox(
@@ -90,7 +87,6 @@ with st.sidebar:
         value=st.session_state.get(THINKING_ENABLED, DEFAULT_THINKING_ENABLED),
         key=THINKING_ENABLED,
     )
-    st.session_state[THINKING_ENABLED] = thinking_enabled
 
     # Reasoning effort
     reasoning_effort_options = ["low", "medium", "high"]
@@ -103,7 +99,6 @@ with st.sidebar:
         index=reasoning_effort_index,
         key=REASONING_EFFORT,
     )
-    st.session_state[REASONING_EFFORT] = reasoning_effort
 
     st.divider()
 
