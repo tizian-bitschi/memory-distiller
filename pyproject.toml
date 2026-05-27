@@ -20,6 +20,9 @@ dev = [
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+packages = ["memory_distiller"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
