@@ -4,6 +4,8 @@ Dieses Dokument sammelt bewusste Entscheidungen, die vor oder während der Imple
 
 ## 1. Prompt-only zuerst oder API-Modus direkt?
 
+**Status: DONE**
+
 Entscheidung:
 
 - Prompt-only bleibt als Fallback erhalten.
@@ -17,6 +19,8 @@ Begründung:
 - Die Architektur bleibt provider-unabhängig.
 
 ## 2. Erster API-Provider
+
+**Status: DONE** (DeepSeek V4 implemented)
 
 Entscheidung:
 
@@ -67,6 +71,8 @@ Option B: deterministischer Merger
 
 Empfehlung: Im ersten MVP LLM-Merger erlauben, aber Parser und Domainmodell so bauen, dass später ein deterministischer Merger möglich ist.
 
+**Current MVP: LLM-based merger implemented.** Deterministic merger is future work.
+
 ## 4. Speicherformat Line-Format oder JSON?
 
 Option A: Line-Format
@@ -83,6 +89,8 @@ Option B: JSON
 - manuell sperriger
 
 Empfehlung: Line-Format für Dateien, intern typisierte Python-Objekte.
+
+**Current MVP decision: Line-Format is used.**
 
 ## 5. Wie streng soll der Parser sein?
 
@@ -178,3 +186,7 @@ Mögliche Optionen:
 - MIT, wenn möglichst permissiv
 - Apache-2.0, wenn Patentklausel gewünscht
 - privat lassen, wenn zunächst nur eigenes Tool
+
+---
+
+**Note:** Deployment is tracked separately in issues [#8](https://github.com/tizian-bitschi/memory-distiller/issues/8) and [#9](https://github.com/tizian-bitschi/memory-distiller/issues/9).
