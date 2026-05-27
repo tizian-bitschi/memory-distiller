@@ -1,8 +1,4 @@
-"""Page render functions for Streamlit MVP UI tabs.
-
-This module is a thin compatibility aggregator. Tab implementations live in
-memory_distiller.ui.tabs package.
-"""
+"""Tab render functions for Memory Distiller UI."""
 
 from memory_distiller.ui.tabs.compress_tab import render_compress_tab
 from memory_distiller.ui.tabs.extract_tab import render_extract_tab

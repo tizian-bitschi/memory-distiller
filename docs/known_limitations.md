@@ -37,3 +37,7 @@ In API mode, chat logs and memory content are sent to DeepSeek. Privacy depends 
 ## Compression Output in Prompt-Only Mode
 
 In prompt-only mode, the Compress tab displays only the generated prompt. There is no output parsing or display of the resulting memory prompt block. Users must paste the LLM response and interpret it themselves.
+
+## UI Modularization
+
+The MVP UI has been split into smaller tab modules, but further UX improvements may still be useful.
