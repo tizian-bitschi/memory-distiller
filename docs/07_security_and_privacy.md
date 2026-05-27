@@ -145,6 +145,10 @@ Später möglich:
 - lokale Run-Historie löschen
 - Memory-Einträge als deprecated markieren oder entfernen
 
+## Upload und Export
+
+Hochgeladene Dateien werden nur in die aktuelle Sitzung eingelesen, nicht auf die Festplatte geschrieben. Exporte werden im Speicher generiert und als Download bereitgestellt, nicht automatisch gespeichert. Keine versteckte Persistenz.
+
 ## Repository-Hygiene
 
 Nie committen:
