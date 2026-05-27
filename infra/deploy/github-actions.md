@@ -18,27 +18,51 @@ The Deploy workflow requires these secrets to be configured in the repository:
 
 ## How to Rotate Deploy Key
 
-1. On the VPS, generate a new SSH key pair for the deploy user:
+1. On the VPS, generate a new SSH key pair for the deploy user without printing it:
    ```bash
-   ssh-keygen -t ed25519 -f ~/.ssh/deploy_key
+   ssh-keygen -t ed25519 -f /root/memory-distiller-github-actions-deploy-key -N ""
    ```
-2. Add the public key to the `memory-deploy` user's `authorized_keys`:
+2. Add only the public key to the deploy user's authorized keys:
    ```bash
-   cat ~/.ssh/deploy_key.pub >> ~/.ssh/authorized_keys
+   cat /root/memory-distiller-github-actions-deploy-key.pub > /home/memory-deploy/.ssh/authorized_keys
    ```
-3. Copy the private key content.
-4. In the GitHub repository, go to **Settings → Secrets and variables → Actions**.
-5. Update the `VPS_SSH_KEY` secret with the new private key content.
+3. Ensure correct permissions:
+   ```bash
+   chown -R memory-deploy:memory-deploy /home/memory-deploy/.ssh
+   chmod 700 /home/memory-deploy/.ssh
+   chmod 600 /home/memory-deploy/.ssh/authorized_keys
+   ```
+4. Update the GitHub secret `VPS_SSH_KEY` with the private key content:
+   ```bash
+   gh secret set VPS_SSH_KEY --repo tizian-bitschi/memory-distiller < /root/memory-distiller-github-actions-deploy-key
+   ```
+5. Do not commit or print the private key.
 
 ## How the Deploy User Works
 
 The `memory-deploy` user is a low-privilege user on the VPS. It is configured in sudoers to allow running only one specific deployment script via `sudo`:
 
 ```
-memory-deploy ALL=(ALL) NOPASSWD: /usr/local/bin/deploy-memory-distiller
+memory-deploy ALL=(root) NOPASSWD: /usr/local/bin/deploy-memory-distiller
+```
+
+After creating the sudoers file, validate it:
+
+```bash
+visudo -cf /etc/sudoers.d/memory-distiller-deploy
 ```
 
 This means the GitHub Actions deploy step can only trigger that exact script and nothing else on the server.
+
+## Install/Update Server Deploy Script
+
+The workflow calls `/usr/local/bin/deploy-memory-distiller` on the VPS. To install or update it from the versioned script in the repository:
+
+```bash
+sudo cp infra/deploy/deploy-memory-distiller.sh /usr/local/bin/deploy-memory-distiller
+sudo chown root:root /usr/local/bin/deploy-memory-distiller
+sudo chmod 755 /usr/local/bin/deploy-memory-distiller
+```
 
 ## Manual Deployment Trigger
 
