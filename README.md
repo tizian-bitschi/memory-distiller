@@ -129,3 +129,11 @@ mypy memory_distiller
 ```bash
 streamlit run memory_distiller/app.py
 ```
+
+### Upload & Export
+
+Unterstützte Upload-Typen: `.txt`, `.md`, `.markdown`
+
+Exporte werden als Download generiert, nicht automatisch gespeichert. Kein verstecktes Schreiben auf die lokale Festplatte.
+
+API-Key wird ausschliesslich ueber die Environment-Variable `DEEPSEEK_API_KEY` gelesen.

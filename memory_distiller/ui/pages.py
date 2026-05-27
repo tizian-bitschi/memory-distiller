@@ -12,6 +12,8 @@ from memory_distiller.domain.candidate import MemoryCandidate, ValidatedCandidat
 from memory_distiller.domain.errors import ParseErrorCollection
 from memory_distiller.domain.memory_entry import MemoryDocument
 from memory_distiller.io.candidate_parser import parse_candidates, parse_validated_candidates
+from memory_distiller.io.file_export import build_text_download_payload, safe_export_filename
+from memory_distiller.io.file_import import decode_uploaded_text, validate_text_file_extension
 from memory_distiller.io.memory_parser import parse_memory_document
 from memory_distiller.llm.config import LlmConfig
 from memory_distiller.llm.deepseek_client import DeepSeekClient
@@ -29,6 +31,8 @@ from memory_distiller.ui.state import (
     COMPRESSION_RESULT,
     EXISTING_MEMORY,
     EXTRACTION_RESULT,
+    LAST_CHAT_LOG_UPLOAD_NAME,
+    LAST_EXISTING_MEMORY_UPLOAD_NAME,
     MEMORY_FULL_RAW,
     MEMORY_PROMPT_RAW,
     MERGE_RESULT,
@@ -46,6 +50,30 @@ from memory_distiller.ui.state import (
 def render_input_tab() -> None:
     """Render the input tab with chat log, existing memory, and next context."""
     st.subheader("Chat Log")
+    chat_log_file = st.file_uploader(
+        "Upload chat log (optional)",
+        type=["txt", "md", "markdown"],
+        key="chat_log_upload",
+    )
+    if chat_log_file is not None:
+        last = st.session_state.get(LAST_CHAT_LOG_UPLOAD_NAME, "")
+        if chat_log_file.name != last:
+            if not validate_text_file_extension(chat_log_file.name):
+                st.error(
+                    f"Invalid file extension for {chat_log_file.name!r}. "
+                    "Allowed: .txt, .md, .markdown"
+                )
+                st.session_state[LAST_CHAT_LOG_UPLOAD_NAME] = chat_log_file.name
+            else:
+                try:
+                    text = decode_uploaded_text(chat_log_file.read(), filename=chat_log_file.name)
+                    st.session_state[CHAT_LOG] = text
+                    st.session_state[LAST_CHAT_LOG_UPLOAD_NAME] = chat_log_file.name
+                    st.rerun()
+                except ValueError as e:
+                    st.error(str(e))
+                    st.session_state[LAST_CHAT_LOG_UPLOAD_NAME] = chat_log_file.name
+    st.caption("Uploaded files are read into the current session only and are not written to disk.")
     chat_log = st.text_area(
         "Paste your chat log here",
         value=st.session_state.get(CHAT_LOG, ""),
@@ -58,6 +86,32 @@ def render_input_tab() -> None:
     st.caption(f"Characters: {char_count_chat} | Estimated tokens: {token_count_chat}")
 
     st.subheader("Existing Memory")
+    existing_memory_file = st.file_uploader(
+        "Upload existing memory (optional)",
+        type=["txt", "md", "markdown"],
+        key="existing_memory_upload",
+    )
+    if existing_memory_file is not None:
+        last = st.session_state.get(LAST_EXISTING_MEMORY_UPLOAD_NAME, "")
+        if existing_memory_file.name != last:
+            if not validate_text_file_extension(existing_memory_file.name):
+                st.error(
+                    f"Invalid file extension for {existing_memory_file.name!r}. "
+                    "Allowed: .txt, .md, .markdown"
+                )
+                st.session_state[LAST_EXISTING_MEMORY_UPLOAD_NAME] = existing_memory_file.name
+            else:
+                try:
+                    text = decode_uploaded_text(
+                        existing_memory_file.read(), filename=existing_memory_file.name
+                    )
+                    st.session_state[EXISTING_MEMORY] = text
+                    st.session_state[LAST_EXISTING_MEMORY_UPLOAD_NAME] = existing_memory_file.name
+                    st.rerun()
+                except ValueError as e:
+                    st.error(str(e))
+                    st.session_state[LAST_EXISTING_MEMORY_UPLOAD_NAME] = existing_memory_file.name
+    st.caption("Uploaded files are read into the current session only and are not written to disk.")
     existing_memory = st.text_area(
         "Load existing memory (optional)",
         value=st.session_state.get(EXISTING_MEMORY, ""),
@@ -556,11 +610,13 @@ def render_results_tab() -> None:
     if candidates_raw:
         st.download_button(
             "Download candidates.txt",
-            data=candidates_raw,
-            file_name="candidates.txt",
+            data=build_text_download_payload(candidates_raw),
+            file_name=safe_export_filename("candidates.txt"),
             mime="text/plain",
             key="download_candidates",
         )
+    else:
+        st.caption("No content available for download.")
 
     st.subheader("Validated Candidates Raw")
     st.text_area(
@@ -572,11 +628,13 @@ def render_results_tab() -> None:
     if validated_raw:
         st.download_button(
             "Download validated_candidates.txt",
-            data=validated_raw,
-            file_name="validated_candidates.txt",
+            data=build_text_download_payload(validated_raw),
+            file_name=safe_export_filename("validated_candidates.txt"),
             mime="text/plain",
             key="download_validated",
         )
+    else:
+        st.caption("No content available for download.")
 
     st.subheader("Memory Full Raw")
     st.text_area(
@@ -588,11 +646,13 @@ def render_results_tab() -> None:
     if memory_full_raw:
         st.download_button(
             "Download memory_full.md",
-            data=memory_full_raw,
-            file_name="memory_full.md",
+            data=build_text_download_payload(memory_full_raw),
+            file_name=safe_export_filename("memory_full.md"),
             mime="text/markdown",
             key="download_memory_full",
         )
+    else:
+        st.caption("No content available for download.")
 
     st.subheader("Memory Prompt Raw")
     st.text_area(
@@ -604,8 +664,12 @@ def render_results_tab() -> None:
     if memory_prompt_raw:
         st.download_button(
             "Download memory_prompt.md",
-            data=memory_prompt_raw,
-            file_name="memory_prompt.md",
+            data=build_text_download_payload(memory_prompt_raw),
+            file_name=safe_export_filename("memory_prompt.md"),
             mime="text/markdown",
             key="download_memory_prompt",
         )
+    else:
+        st.caption("No content available for download.")
+
+    st.caption("Downloads are generated in memory. Nothing is saved automatically.")

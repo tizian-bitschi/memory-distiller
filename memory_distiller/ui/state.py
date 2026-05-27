@@ -21,6 +21,8 @@ MEMORY_FULL_RAW: str = "memory_full_raw"
 MEMORY_PROMPT_RAW: str = "memory_prompt_raw"
 
 EXTRACTION_RESULT: str = "extraction_result"
+LAST_CHAT_LOG_UPLOAD_NAME: str = "_last_chat_log_upload_name"
+LAST_EXISTING_MEMORY_UPLOAD_NAME: str = "_last_existing_memory_upload_name"
 VALIDATION_RESULT: str = "validation_result"
 MERGE_RESULT: str = "merge_result"
 COMPRESSION_RESULT: str = "compression_result"
@@ -51,6 +53,8 @@ def initialize_session_state() -> None:
     st.session_state.setdefault(MEMORY_FULL_RAW, "")
     st.session_state.setdefault(MEMORY_PROMPT_RAW, "")
     # Pipeline results initialized to None (set after pipeline runs)
+    st.session_state.setdefault(LAST_CHAT_LOG_UPLOAD_NAME, "")
+    st.session_state.setdefault(LAST_EXISTING_MEMORY_UPLOAD_NAME, "")
     st.session_state.setdefault(EXTRACTION_RESULT, None)
     st.session_state.setdefault(VALIDATION_RESULT, None)
     st.session_state.setdefault(MERGE_RESULT, None)
