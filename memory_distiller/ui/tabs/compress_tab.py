@@ -17,6 +17,24 @@ from memory_distiller.ui.state import (
 )
 
 
+def save_memory_prompt_to_state(state: dict[str, object], content: str) -> bool:
+    """Save memory prompt content to session state.
+
+    Args:
+        state: Session state dictionary (typically st.session_state).
+        content: Raw content from LLM response to save.
+
+    Returns:
+        True if content was saved successfully, False if empty.
+    """
+    cleaned = content.strip()
+    if not cleaned:
+        return False
+    state[MEMORY_PROMPT_RAW] = cleaned
+    state[COMPRESSION_RESULT] = cleaned
+    return True
+
+
 def render_compress_tab() -> None:
     """Render the compression tab with prompt-only and API modes."""
     mode = st.session_state.get(MODE, "Prompt-only")
@@ -45,6 +63,24 @@ def _render_compress_prompt_only() -> None:
         return
 
     st.text_area("Prompt", value=prompt, height=400, key="compress_prompt_display")
+
+    st.divider()
+    st.subheader("LLM Response / Memory Prompt")
+    response_key = "compress_prompt_only_response"
+    response_content = st.session_state.get(response_key, "")
+    st.text_area(
+        "Paste the LLM response containing # MEMORY_PROMPT block",
+        value=response_content,
+        height=200,
+        key=response_key,
+    )
+
+    if st.button("Save Memory Prompt", key="compress_prompt_only_save_btn"):
+        raw_content = st.session_state.get(response_key, "")
+        if save_memory_prompt_to_state(st.session_state, raw_content):  # type: ignore[arg-type]
+            st.success("Memory prompt saved. You can download it from Export / Results.")
+        else:
+            st.warning("Memory prompt cannot be empty.")
 
 
 def _render_compress_api() -> None:
