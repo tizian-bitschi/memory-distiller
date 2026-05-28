@@ -28,7 +28,7 @@ The sidebar lets you choose between two modes:
 
 Go to the Input tab. Paste your chat log and optionally an existing memory file.
 
-You can also upload `.txt`, `.md`, or `.markdown` files using the file uploaders. Uploaded files go into the session only and are never written to disk.
+You can also upload `.txt`, `.md`, `.markdown`, `.html`, or `.htm` files using the file uploaders. ChatGPT HTML exports (`.html`, `.htm`) are automatically converted to plain text. Uploaded files stay in the session only and are never written to disk.
 
 Optionally provide a "Next context hint" to guide the compression step later.
 
