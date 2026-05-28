@@ -4,7 +4,7 @@ This document describes known limitations of the current MVP implementation. The
 
 ## LLM Output Format
 
-The parsers expect LLM responses in specific pipe-delimited formats. Malformed output can cause parse failures. Users must manually correct LLM output or re-prompt when format expectations are not met.
+The parsers expect LLM responses in specific pipe-delimited formats. Malformed output can cause parse failures. The parser remains strict and expects canonical enum values (e.g., PREF not PREFERENCE, G not GLOBAL, H not HIGH, D not STABLE). Users can explicitly repair known common aliases via the "Repair common enum aliases" button in the Extract, Validate, and Merge tabs. This converts only known aliases (PREFERENCE→PREF, GLOBAL→G, PROJECT:X→P:X, HIGH→H, STABLE→D, etc.). Free-text fields (STATEMENT, EVIDENCE, REASON) are never modified. Unknown or custom values still cause parse failures and must be corrected manually.
 
 ## No Deterministic Merger
 

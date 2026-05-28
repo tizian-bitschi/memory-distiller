@@ -8,6 +8,7 @@ from memory_distiller.application.extraction_service import ExtractionService
 from memory_distiller.domain.candidate import MemoryCandidate
 from memory_distiller.domain.errors import ParseErrorCollection
 from memory_distiller.io.candidate_parser import parse_candidates
+from memory_distiller.io.enum_aliases import normalize_candidate_lines
 from memory_distiller.llm.errors import MissingApiKeyError
 from memory_distiller.ui.components import render_candidate_table, render_error
 from memory_distiller.ui.llm_factory import create_deepseek_client_from_session_state
@@ -56,6 +57,23 @@ def _render_extract_prompt_only() -> None:
         key="extract_llm_response",
     )
 
+    if st.button("Repair common enum aliases", key="extract_repair_btn"):
+        if not llm_response:
+            st.warning("Please paste an LLM response first.")
+        else:
+            repaired, changes = normalize_candidate_lines(llm_response)
+            st.session_state["extract_llm_response"] = repaired
+            st.session_state["extract_repair_changes"] = changes
+            st.rerun()
+
+    changes = st.session_state.get("extract_repair_changes", [])
+    if changes:
+        st.subheader("Repairs Applied")
+        for change in changes:
+            st.write(f"- {change}")
+    elif "extract_repair_changes" in st.session_state:
+        st.info("No changes needed.")
+
     if st.button("Parse Candidates", key="extract_parse_btn"):
         if not llm_response:
             st.warning("Please paste an LLM response first.")
@@ -64,6 +82,7 @@ def _render_extract_prompt_only() -> None:
         try:
             candidates = parse_candidates(llm_response)
             st.session_state[EXTRACTION_RESULT] = candidates
+            st.session_state.pop("extract_repair_changes", None)
             st.success(f"✅ Parsed {len(candidates)} candidates successfully.")
         except ParseErrorCollection as e:
             st.error(render_error(e))

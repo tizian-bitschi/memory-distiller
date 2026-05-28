@@ -7,6 +7,7 @@ import streamlit as st
 from memory_distiller.application.merge_service import MergeService
 from memory_distiller.domain.errors import ParseErrorCollection
 from memory_distiller.domain.memory_entry import MemoryDocument
+from memory_distiller.io.enum_aliases import normalize_memory_document
 from memory_distiller.io.memory_parser import parse_memory_document
 from memory_distiller.llm.errors import MissingApiKeyError
 from memory_distiller.ui.components import render_error, render_memory_summary
@@ -59,6 +60,23 @@ def _render_merge_prompt_only() -> None:
         key="merge_llm_response",
     )
 
+    if st.button("Repair common enum aliases", key="merge_repair_btn"):
+        if not llm_response:
+            st.warning("Please paste an LLM response first.")
+        else:
+            repaired, changes = normalize_memory_document(llm_response)
+            st.session_state["merge_llm_response"] = repaired
+            st.session_state["merge_repair_changes"] = changes
+            st.rerun()
+
+    changes = st.session_state.get("merge_repair_changes", [])
+    if changes:
+        st.subheader("Repairs Applied")
+        for change in changes:
+            st.write(f"- {change}")
+    elif "merge_repair_changes" in st.session_state:
+        st.info("No changes needed.")
+
     if st.button("Parse Memory Document", key="merge_parse_btn"):
         if not llm_response:
             st.warning("Please paste an LLM response first.")
@@ -67,6 +85,7 @@ def _render_merge_prompt_only() -> None:
         try:
             memory_doc = parse_memory_document(llm_response)
             st.session_state[MERGE_RESULT] = memory_doc
+            st.session_state.pop("merge_repair_changes", None)
             st.success("✅ Parsed memory document successfully.")
             summary = render_memory_summary(memory_doc)
             st.json(summary)

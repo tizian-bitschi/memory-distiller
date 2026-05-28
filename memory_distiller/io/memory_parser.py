@@ -9,6 +9,12 @@ from memory_distiller.domain.memory_entry import (
     MemoryDocument,
     MemoryEntry,
 )
+from memory_distiller.io.enum_aliases import (
+    suggest_priority_alias,
+    suggest_scope_alias,
+    suggest_stability_alias,
+    suggest_type_alias,
+)
 
 
 def validate_scope(scope: str) -> None:
@@ -46,7 +52,11 @@ def _parse_scope(scope: str, line_number: int, errors: list[ParseError]) -> str 
         validate_scope(scope)
         return scope
     except ValueError as e:
-        errors.append(ParseError(line_number, scope, str(e)))
+        suggestion = suggest_scope_alias(scope)
+        err_msg = str(e)
+        if suggestion:
+            err_msg = f"{err_msg} Did you mean {suggestion!r}?"
+        errors.append(ParseError(line_number, scope, err_msg))
         return None
 
 
@@ -67,13 +77,15 @@ def _parse_memory_type(
         return MemoryType(type_str)
     except ValueError:
         valid_types = [t.value for t in MemoryType]
-        errors.append(
-            ParseError(
-                line_number,
-                type_str,
-                f"Unknown memory type {type_str!r}. Valid values: {valid_types}",
+        suggestion = suggest_type_alias(type_str)
+        if suggestion:
+            msg = (
+                f"Unknown memory type {type_str!r}."
+                f" Did you mean {suggestion!r}? Valid values: {valid_types}"
             )
-        )
+        else:
+            msg = f"Unknown memory type {type_str!r}. Valid values: {valid_types}"
+        errors.append(ParseError(line_number, type_str, msg))
         return None
 
 
@@ -92,13 +104,15 @@ def _parse_priority(prio_str: str, line_number: int, errors: list[ParseError]) -
         return Priority(prio_str)
     except ValueError:
         valid_priorities = [p.value for p in Priority]
-        errors.append(
-            ParseError(
-                line_number,
-                prio_str,
-                f"Unknown priority {prio_str!r}. Valid values: {valid_priorities}",
+        suggestion = suggest_priority_alias(prio_str)
+        if suggestion:
+            msg = (
+                f"Unknown priority {prio_str!r}."
+                f" Did you mean {suggestion!r}? Valid values: {valid_priorities}"
             )
-        )
+        else:
+            msg = f"Unknown priority {prio_str!r}. Valid values: {valid_priorities}"
+        errors.append(ParseError(line_number, prio_str, msg))
         return None
 
 
@@ -119,13 +133,15 @@ def _parse_stability(
         return Stability(stability_str)
     except ValueError:
         valid_stabilities = [s.value for s in Stability]
-        errors.append(
-            ParseError(
-                line_number,
-                stability_str,
-                f"Unknown stability {stability_str!r}. Valid values: {valid_stabilities}",
+        suggestion = suggest_stability_alias(stability_str)
+        if suggestion:
+            msg = (
+                f"Unknown stability {stability_str!r}."
+                f" Did you mean {suggestion!r}? Valid values: {valid_stabilities}"
             )
-        )
+        else:
+            msg = f"Unknown stability {stability_str!r}. Valid values: {valid_stabilities}"
+        errors.append(ParseError(line_number, stability_str, msg))
         return None
 
 
