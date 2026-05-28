@@ -258,22 +258,35 @@ abc123|ADD|rule1|G|RULE|H|STABLE|Statement.|Evidence.|Reason.
         assert candidates[0].type.value == "PREF"
 
     def test_repair_then_parse_validated_candidate_passes(self):
-        """Repair with normalize_candidate_lines for candidate, then parse passes."""
+        """Repair validated candidate (11 columns), then parse passes."""
         from memory_distiller.io.enum_aliases import normalize_candidate_lines
 
-        # Validated candidate (11 columns) - uses same normalize function
-        # but the function only handles 10-column candidates correctly
-        # For validated candidates, repair must be done manually or via different path
-        # This test shows that normalize works for 10-column candidates
         raw = (
-            "ID|ACTION|TARGET|SCOPE|TYPE|PRIORITY|STABILITY"
+            "ID|VERDICT|ACTION|TARGET|SCOPE|TYPE|PRIORITY|STABILITY"
             "|STATEMENT|EVIDENCE|REASON\n"
-            "abc123|ADD|rule1|PROJECT:Proj|PREFERENCE|HIGH|STABLE"
-            "|Use units.|User said.|Project pref."
+            "M1|KEEP|ADD|-|PROJECT:RecipeBot|PREFERENCE|HIGH|STABLE"
+            "|Use metric units.|User said so.|Project preference."
         )
         normalized, changes = normalize_candidate_lines(raw)
         assert len(changes) == 4
-        candidates = parse_candidates(normalized)
-        assert len(candidates) == 1
-        assert candidates[0].scope == "P:Proj"
-        assert candidates[0].type.value == "PREF"
+        validated = parse_validated_candidates(normalized)
+        assert len(validated) == 1
+        assert validated[0].scope == "P:RecipeBot"
+        assert validated[0].type.value == "PREF"
+        assert validated[0].priority.value == "H"
+        assert validated[0].stability.value == "D"
+        assert validated[0].verdict.value == "KEEP"
+
+    def test_reject_validated_type_alias_strict(self):
+        """Validated candidate type alias rejected with suggestion."""
+        text = (
+            "ID|VERDICT|ACTION|TARGET|SCOPE|TYPE|PRIORITY|STABILITY"
+            "|STATEMENT|EVIDENCE|REASON\n"
+            "M1|KEEP|ADD|-|PROJECT:RecipeBot|PREFERENCE|HIGH|STABLE"
+            "|Use metric units.|User said so.|Project preference.\n"
+        )
+        with pytest.raises(ParseErrorCollection) as exc_info:
+            parse_validated_candidates(text)
+        errors = exc_info.value.errors
+        assert len(errors) >= 1
+        assert any("Did you mean 'PREF'?" in str(e) for e in errors)
