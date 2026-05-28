@@ -96,6 +96,14 @@ Output only validated lines in this format:
 
 ID|VERDICT|ACTION|TARGET|SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|REASON
 
+IMPORTANT: Every output line MUST include VERDICT as the second column. Do NOT output extractor candidate format. A line like `M1|ADD|-|...` is invalid here because it is missing VERDICT. Use `M1|KEEP|ADD|-|...` or another valid verdict.
+
+INVALID (extractor candidate format, 10 columns, missing VERDICT):
+M1|ADD|-|P:RecipeBot|RULE|H|D|All recipes vegetarian.|User asked.|Reusable project rule.
+
+VALID (validator output, 11 columns, with VERDICT):
+M1|KEEP|ADD|-|P:RecipeBot|RULE|H|D|All recipes vegetarian.|User asked.|Reusable project rule.
+
 VERDICT:
 KEEP = accept
 EDIT = accept, but corrected

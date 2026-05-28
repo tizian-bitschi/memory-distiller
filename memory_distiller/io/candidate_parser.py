@@ -180,6 +180,17 @@ def parse_validated_candidates(text: str) -> list[ValidatedCandidate]:
             continue
 
         parts = stripped.split("|")
+        if len(parts) == 10:
+            errors.append(
+                ParseError(
+                    line_num,
+                    line,
+                    "Expected 11 columns, got 10. This looks like extractor candidate format. "
+                    "Validator output must include VERDICT as the second column, "
+                    "e.g. M1|KEEP|ADD|...",
+                ),
+            )
+            continue
         if len(parts) != 11:
             errors.append(ParseError(line_num, line, f"Expected 11 columns, got {len(parts)}"))
             continue

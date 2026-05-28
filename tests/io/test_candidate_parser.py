@@ -290,3 +290,48 @@ abc123|ADD|rule1|G|RULE|H|STABLE|Statement.|Evidence.|Reason.
         errors = exc_info.value.errors
         assert len(errors) >= 1
         assert any("Did you mean 'PREF'?" in str(e) for e in errors)
+
+
+class TestParseValidatedCandidateFormatHint:
+    """Tests for error hints when 10-column extractor format is used in validated parser."""
+
+    def test_reject_10_column_extractor_format_with_helpful_hint(self):
+        """Reject 10-column extractor format with helpful hint about expected 11 columns."""
+        text = (
+            "M1|ADD|-|P:RecipeBot|RULE|H|D|All recipes vegetarian."
+            "|User asked.|Reusable project rule.\n"
+        )
+        with pytest.raises(ParseErrorCollection) as exc_info:
+            parse_validated_candidates(text)
+        errors = exc_info.value.errors
+        assert len(errors) >= 1
+        error_text = str(errors[0])
+        assert "Expected 11 columns" in error_text
+        assert "got 10" in error_text
+        assert "extractor candidate format" in error_text
+        assert "VERDICT" in error_text
+        assert "M1|KEEP|ADD" in error_text
+
+    def test_parse_candidates_still_accepts_10_column_line(self):
+        """parse_candidates still accepts 10-column extractor format (no VERDICT column)."""
+        text = (
+            "M1|ADD|-|P:RecipeBot|RULE|H|D|All recipes vegetarian."
+            "|User asked.|Reusable project rule.\n"
+        )
+        candidates = parse_candidates(text)
+        assert len(candidates) == 1
+        assert candidates[0].id == "M1"
+        assert candidates[0].action == CandidateAction.ADD
+
+    def test_parse_validated_candidates_still_accepts_valid_11_column_line(self):
+        """parse_validated_candidates accepts valid 11-column validated candidate line."""
+        header = "ID|VERDICT|ACTION|TARGET|SCOPE|TYPE|PRIORITY|STABILITY|STATEMENT|EVIDENCE|REASON"
+        line = (
+            "M1|KEEP|ADD|-|P:RecipeBot|RULE|H|D|All recipes vegetarian."
+            "|User asked.|Reusable project rule."
+        )
+        text = f"{header}\n{line}\n"
+        validated = parse_validated_candidates(text)
+        assert len(validated) == 1
+        assert validated[0].id == "M1"
+        assert validated[0].verdict == ValidationVerdict.KEEP
