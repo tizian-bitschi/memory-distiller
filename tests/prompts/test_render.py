@@ -193,6 +193,26 @@ class TestRenderValidatorPrompt:
         assert "P:RecipeBot|PREF|H|D" in result
         assert "metric units" in result
 
+    def test_contains_verdict_as_second_column_guidance(self) -> None:
+        """Validator prompt contains guidance about VERDICT as second column."""
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "VERDICT as the second column" in result
+
+    def test_contains_do_not_output_extractor_candidate_format(self) -> None:
+        """Validator prompt warns against extractor candidate format."""
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "Do NOT output extractor candidate format" in result
+
+    def test_contains_invalid_example_fragment(self) -> None:
+        """Validator prompt contains invalid example fragment."""
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "M1|ADD|-|P:RecipeBot|RULE|H|D" in result
+
+    def test_contains_valid_example_fragment(self) -> None:
+        """Validator prompt contains valid example fragment."""
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "M1|KEEP|ADD|-|P:RecipeBot|RULE|H|D" in result
+
 
 class TestRenderMergerPrompt:
     """Tests for render_merger_prompt."""
