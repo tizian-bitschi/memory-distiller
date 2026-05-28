@@ -8,6 +8,7 @@ from memory_distiller.application.validation_service import ValidationService
 from memory_distiller.domain.candidate import ValidatedCandidate
 from memory_distiller.domain.errors import ParseErrorCollection
 from memory_distiller.io.candidate_parser import parse_validated_candidates
+from memory_distiller.io.enum_aliases import normalize_candidate_lines
 from memory_distiller.llm.errors import MissingApiKeyError
 from memory_distiller.ui.components import render_error, render_validated_candidate_table
 from memory_distiller.ui.llm_factory import create_deepseek_client_from_session_state
@@ -66,6 +67,23 @@ def _render_validate_prompt_only() -> None:
         key="validate_llm_response",
     )
 
+    if st.button("Repair common enum aliases", key="validate_repair_btn"):
+        if not llm_response:
+            st.warning("Please paste an LLM response first.")
+        else:
+            repaired, changes = normalize_candidate_lines(llm_response)
+            st.session_state["validate_llm_response"] = repaired
+            st.session_state["validate_repair_changes"] = changes
+            st.rerun()
+
+    changes = st.session_state.get("validate_repair_changes", [])
+    if changes:
+        st.subheader("Repairs Applied")
+        for change in changes:
+            st.write(f"- {change}")
+    elif "validate_repair_changes" in st.session_state:
+        st.info("No changes needed.")
+
     if st.button("Parse Validated Candidates", key="validate_parse_btn"):
         if not llm_response:
             st.warning("Please paste an LLM response first.")
@@ -74,6 +92,7 @@ def _render_validate_prompt_only() -> None:
         try:
             validated = parse_validated_candidates(llm_response)
             st.session_state[VALIDATION_RESULT] = validated
+            st.session_state.pop("validate_repair_changes", None)
             st.success(f"✅ Parsed {len(validated)} validated candidates successfully.")
         except ParseErrorCollection as e:
             st.error(render_error(e))

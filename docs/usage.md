@@ -103,6 +103,8 @@ If parsing fails, the app shows an error with details. Common causes:
 
 To fix: review the LLM output, correct the format, and re-paste. The app remains usable after parse errors.
 
+**Repairing common enum aliases**: The Extract, Validate, and Merge tabs include a "Repair common enum aliases" button. This converts known aliases to their canonical forms (PREFERENCE→PREF, GLOBAL→G, PROJECT:X→P:X, HIGH→H, STABLE→D, etc.). Free-text fields such as STATEMENT, EVIDENCE, and REASON are never modified. Only known aliases are repaired; unknown values still cause parse failures and must be corrected manually.
+
 ## Privacy Notes
 
 **Prompt-only mode**: Your data stays in the browser session. Nothing is sent to any external service.

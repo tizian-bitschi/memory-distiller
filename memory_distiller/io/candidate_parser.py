@@ -11,6 +11,12 @@ from memory_distiller.domain.enums import (
     ValidationVerdict,
 )
 from memory_distiller.domain.errors import ParseError, ParseErrorCollection
+from memory_distiller.io.enum_aliases import (
+    suggest_priority_alias,
+    suggest_scope_alias,
+    suggest_stability_alias,
+    suggest_type_alias,
+)
 
 
 def _validate_scope(scope: str) -> None:
@@ -79,35 +85,54 @@ def parse_candidates(text: str) -> list[MemoryCandidate]:
             type_enum = MemoryType(type_str)
         except ValueError:
             valid_types = ", ".join(t.value for t in MemoryType)
-            errors.append(
-                ParseError(line_num, line, f"Invalid type: {type_str!r}. Valid: {valid_types}")
-            )
+            suggestion = suggest_type_alias(type_str)
+            if suggestion:
+                msg = (
+                    f"Invalid type: {type_str!r}. Did you mean {suggestion!r}? Valid: {valid_types}"
+                )
+            else:
+                msg = f"Invalid type: {type_str!r}. Valid: {valid_types}"
+            errors.append(ParseError(line_num, line, msg))
             continue
 
         try:
             priority_enum = Priority(prio)
         except ValueError:
             valid_priorities = ", ".join(p.value for p in Priority)
-            errors.append(
-                ParseError(line_num, line, f"Invalid priority: {prio!r}. Valid: {valid_priorities}")
-            )
+            suggestion = suggest_priority_alias(prio)
+            if suggestion:
+                msg = (
+                    f"Invalid priority: {prio!r}. Did you mean {suggestion!r}?"
+                    f" Valid: {valid_priorities}"
+                )
+            else:
+                msg = f"Invalid priority: {prio!r}. Valid: {valid_priorities}"
+            errors.append(ParseError(line_num, line, msg))
             continue
 
         try:
             stability_enum = Stability(stability)
         except ValueError:
             valid_stabilities = ", ".join(s.value for s in Stability)
-            errors.append(
-                ParseError(
-                    line_num, line, f"Invalid stability: {stability!r}. Valid: {valid_stabilities}"
+            suggestion = suggest_stability_alias(stability)
+            if suggestion:
+                msg = (
+                    f"Invalid stability: {stability!r}. Did you mean {suggestion!r}?"
+                    f" Valid: {valid_stabilities}"
                 )
-            )
+            else:
+                msg = f"Invalid stability: {stability!r}. Valid: {valid_stabilities}"
+            errors.append(ParseError(line_num, line, msg))
             continue
 
         try:
             _validate_scope(scope)
         except ValueError as e:
-            errors.append(ParseError(line_num, line, str(e)))
+            suggestion = suggest_scope_alias(scope)
+            err_msg = str(e)
+            if suggestion:
+                err_msg = f"{err_msg} Did you mean {suggestion!r}?"
+            errors.append(ParseError(line_num, line, err_msg))
             continue
 
         candidates.append(
@@ -206,35 +231,54 @@ def parse_validated_candidates(text: str) -> list[ValidatedCandidate]:
             type_enum = MemoryType(type_str)
         except ValueError:
             valid_types = ", ".join(t.value for t in MemoryType)
-            errors.append(
-                ParseError(line_num, line, f"Invalid type: {type_str!r}. Valid: {valid_types}")
-            )
+            suggestion = suggest_type_alias(type_str)
+            if suggestion:
+                msg = (
+                    f"Invalid type: {type_str!r}. Did you mean {suggestion!r}? Valid: {valid_types}"
+                )
+            else:
+                msg = f"Invalid type: {type_str!r}. Valid: {valid_types}"
+            errors.append(ParseError(line_num, line, msg))
             continue
 
         try:
             priority_enum = Priority(prio)
         except ValueError:
             valid_priorities = ", ".join(p.value for p in Priority)
-            errors.append(
-                ParseError(line_num, line, f"Invalid priority: {prio!r}. Valid: {valid_priorities}")
-            )
+            suggestion = suggest_priority_alias(prio)
+            if suggestion:
+                msg = (
+                    f"Invalid priority: {prio!r}. Did you mean {suggestion!r}?"
+                    f" Valid: {valid_priorities}"
+                )
+            else:
+                msg = f"Invalid priority: {prio!r}. Valid: {valid_priorities}"
+            errors.append(ParseError(line_num, line, msg))
             continue
 
         try:
             stability_enum = Stability(stability)
         except ValueError:
             valid_stabilities = ", ".join(s.value for s in Stability)
-            errors.append(
-                ParseError(
-                    line_num, line, f"Invalid stability: {stability!r}. Valid: {valid_stabilities}"
+            suggestion = suggest_stability_alias(stability)
+            if suggestion:
+                msg = (
+                    f"Invalid stability: {stability!r}. Did you mean {suggestion!r}?"
+                    f" Valid: {valid_stabilities}"
                 )
-            )
+            else:
+                msg = f"Invalid stability: {stability!r}. Valid: {valid_stabilities}"
+            errors.append(ParseError(line_num, line, msg))
             continue
 
         try:
             _validate_scope(scope)
         except ValueError as e:
-            errors.append(ParseError(line_num, line, str(e)))
+            suggestion = suggest_scope_alias(scope)
+            err_msg = str(e)
+            if suggestion:
+                err_msg = f"{err_msg} Did you mean {suggestion!r}?"
+            errors.append(ParseError(line_num, line, err_msg))
             continue
 
         candidates.append(

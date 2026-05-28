@@ -332,3 +332,81 @@ Open question?|Why matters.
             assert d1.entry.scope == d2.entry.scope
             assert d1.entry.type == d2.entry.type
             assert d1.entry.statement == d2.entry.statement
+
+
+class TestStrictParserRejectsAliases:
+    """Tests that strict parser rejects enum aliases without repair."""
+
+    def test_reject_memory_type_alias_strict(self):
+        """Type alias PREFERENCE is rejected with suggestion."""
+        text = """# MEMORY_FULL
+## GLOBAL
+SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
+G|PREFERENCE|H|D|Statement.|Evidence.
+"""
+        with pytest.raises(ParseErrorCollection) as exc_info:
+            parse_memory_document(text)
+        errors = exc_info.value.errors
+        assert len(errors) >= 1
+        assert any("Did you mean 'PREF'?" in str(e) for e in errors)
+
+    def test_reject_memory_scope_alias_strict(self):
+        """Scope alias GLOBAL is rejected with suggestion."""
+        text = """# MEMORY_FULL
+## GLOBAL
+SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
+GLOBAL|RULE|H|D|Statement.|Evidence.
+"""
+        with pytest.raises(ParseErrorCollection) as exc_info:
+            parse_memory_document(text)
+        errors = exc_info.value.errors
+        assert len(errors) >= 1
+        assert any("Did you mean 'G'?" in str(e) for e in errors)
+
+    def test_reject_memory_priority_alias_strict(self):
+        """Priority alias HIGH is rejected with suggestion."""
+        text = """# MEMORY_FULL
+## GLOBAL
+SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
+G|RULE|HIGH|D|Statement.|Evidence.
+"""
+        with pytest.raises(ParseErrorCollection) as exc_info:
+            parse_memory_document(text)
+        errors = exc_info.value.errors
+        assert len(errors) >= 1
+        assert any("Did you mean 'H'?" in str(e) for e in errors)
+
+    def test_reject_memory_stability_alias_strict(self):
+        """Stability alias STABLE is rejected with suggestion."""
+        text = """# MEMORY_FULL
+## GLOBAL
+SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
+G|RULE|H|STABLE|Statement.|Evidence.
+"""
+        with pytest.raises(ParseErrorCollection) as exc_info:
+            parse_memory_document(text)
+        errors = exc_info.value.errors
+        assert len(errors) >= 1
+        assert any("Did you mean 'D'?" in str(e) for e in errors)
+
+    def test_repair_then_parse_memory_passes(self):
+        """Repair with normalize_memory_document, then parse passes."""
+        from memory_distiller.io.enum_aliases import normalize_memory_document
+
+        raw = """# MEMORY_FULL
+## GLOBAL
+SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
+GLOBAL|RULE|HIGH|STABLE|Use metric units.|User said so.
+
+## PROJECTS
+SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
+PROJECT:RecipeBot|PREFERENCE|MEDIUM|DURABLE|Project preference.|Evidence.
+"""
+        normalized, changes = normalize_memory_document(raw)
+        assert len(changes) >= 4
+        doc = parse_memory_document(normalized)
+        assert len(doc.global_entries) == 1
+        assert doc.global_entries[0].scope == "G"
+        assert doc.global_entries[0].type.value == "RULE"
+        assert doc.project_entries[0].scope == "P:RecipeBot"
+        assert doc.project_entries[0].type.value == "PREF"

@@ -191,3 +191,102 @@ abc123|INVALID_VERDICT|ADD|rule1|G|RULE|H|D|Statement.|Evidence.|Reason.
         errors = exc_info.value.errors
         assert len(errors) >= 1
         assert any(e.line_number == 2 for e in errors)
+
+
+class TestStrictParserRejectsAliases:
+    """Tests that strict parsers reject enum aliases without repair."""
+
+    def test_reject_type_alias_strict(self):
+        """Type alias PREFERENCE is rejected with suggestion."""
+        text = """ID|ACTION|TARGET|SCOPE|TYPE|PRIORITY|STABILITY|STATEMENT|EVIDENCE|REASON
+abc123|ADD|rule1|G|PREFERENCE|H|D|Statement.|Evidence.|Reason.
+"""
+        with pytest.raises(ParseErrorCollection) as exc_info:
+            parse_candidates(text)
+        errors = exc_info.value.errors
+        assert len(errors) >= 1
+        assert any("Did you mean 'PREF'?" in str(e) for e in errors)
+
+    def test_reject_scope_alias_strict(self):
+        """Scope alias GLOBAL is rejected with suggestion."""
+        text = """ID|ACTION|TARGET|SCOPE|TYPE|PRIORITY|STABILITY|STATEMENT|EVIDENCE|REASON
+abc123|ADD|rule1|GLOBAL|RULE|H|D|Statement.|Evidence.|Reason.
+"""
+        with pytest.raises(ParseErrorCollection) as exc_info:
+            parse_candidates(text)
+        errors = exc_info.value.errors
+        assert len(errors) >= 1
+        assert any("Did you mean 'G'?" in str(e) for e in errors)
+
+    def test_reject_priority_alias_strict(self):
+        """Priority alias HIGH is rejected with suggestion."""
+        text = """ID|ACTION|TARGET|SCOPE|TYPE|PRIORITY|STABILITY|STATEMENT|EVIDENCE|REASON
+abc123|ADD|rule1|G|RULE|HIGH|D|Statement.|Evidence.|Reason.
+"""
+        with pytest.raises(ParseErrorCollection) as exc_info:
+            parse_candidates(text)
+        errors = exc_info.value.errors
+        assert len(errors) >= 1
+        assert any("Did you mean 'H'?" in str(e) for e in errors)
+
+    def test_reject_stability_alias_strict(self):
+        """Stability alias STABLE is rejected with suggestion."""
+        text = """ID|ACTION|TARGET|SCOPE|TYPE|PRIORITY|STABILITY|STATEMENT|EVIDENCE|REASON
+abc123|ADD|rule1|G|RULE|H|STABLE|Statement.|Evidence.|Reason.
+"""
+        with pytest.raises(ParseErrorCollection) as exc_info:
+            parse_candidates(text)
+        errors = exc_info.value.errors
+        assert len(errors) >= 1
+        assert any("Did you mean 'D'?" in str(e) for e in errors)
+
+    def test_repair_then_parse_candidate_passes(self):
+        """Repair with normalize_candidate_lines, then parse passes."""
+        from memory_distiller.io.enum_aliases import normalize_candidate_lines
+
+        raw = (
+            "ID|ACTION|TARGET|SCOPE|TYPE|PRIORITY|STABILITY"
+            "|STATEMENT|EVIDENCE|REASON\n"
+            "abc123|ADD|rule1|PROJECT:Proj|PREFERENCE|HIGH|STABLE"
+            "|Use units.|User said.|Project pref."
+        )
+        normalized, changes = normalize_candidate_lines(raw)
+        assert len(changes) == 4
+        candidates = parse_candidates(normalized)
+        assert len(candidates) == 1
+        assert candidates[0].scope == "P:Proj"
+        assert candidates[0].type.value == "PREF"
+
+    def test_repair_then_parse_validated_candidate_passes(self):
+        """Repair validated candidate (11 columns), then parse passes."""
+        from memory_distiller.io.enum_aliases import normalize_candidate_lines
+
+        raw = (
+            "ID|VERDICT|ACTION|TARGET|SCOPE|TYPE|PRIORITY|STABILITY"
+            "|STATEMENT|EVIDENCE|REASON\n"
+            "M1|KEEP|ADD|-|PROJECT:RecipeBot|PREFERENCE|HIGH|STABLE"
+            "|Use metric units.|User said so.|Project preference."
+        )
+        normalized, changes = normalize_candidate_lines(raw)
+        assert len(changes) == 4
+        validated = parse_validated_candidates(normalized)
+        assert len(validated) == 1
+        assert validated[0].scope == "P:RecipeBot"
+        assert validated[0].type.value == "PREF"
+        assert validated[0].priority.value == "H"
+        assert validated[0].stability.value == "D"
+        assert validated[0].verdict.value == "KEEP"
+
+    def test_reject_validated_type_alias_strict(self):
+        """Validated candidate type alias rejected with suggestion."""
+        text = (
+            "ID|VERDICT|ACTION|TARGET|SCOPE|TYPE|PRIORITY|STABILITY"
+            "|STATEMENT|EVIDENCE|REASON\n"
+            "M1|KEEP|ADD|-|PROJECT:RecipeBot|PREFERENCE|HIGH|STABLE"
+            "|Use metric units.|User said so.|Project preference.\n"
+        )
+        with pytest.raises(ParseErrorCollection) as exc_info:
+            parse_validated_candidates(text)
+        errors = exc_info.value.errors
+        assert len(errors) >= 1
+        assert any("Did you mean 'PREF'?" in str(e) for e in errors)
