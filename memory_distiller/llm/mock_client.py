@@ -6,20 +6,34 @@ from typing import Any
 
 from memory_distiller.llm.config import LlmConfig
 from memory_distiller.llm.errors import EmptyLlmResponseError
+from memory_distiller.llm.models import LlmCostEstimate, LlmResponse, LlmUsage
 
 
 class MockClient:
     """Mock LLM client that returns a fixed response string."""
 
-    def __init__(self, response: str = "", config: LlmConfig | None = None) -> None:
+    def __init__(
+        self,
+        response: str = "",
+        config: LlmConfig | None = None,
+        usage: LlmUsage | None = None,
+        cost_estimate: LlmCostEstimate | None = None,
+        model: str | None = None,
+    ) -> None:
         """Initialize mock client.
 
         Args:
             response: Fixed response string to return.
-            config: Optional configuration (not used but kept for interface).
+            config: Optional configuration.
+            usage: Optional usage metadata to return.
+            cost_estimate: Optional cost estimate to return.
+            model: Optional model name to return.
         """
         self._response = response
         self._config = config if config is not None else LlmConfig()
+        self._usage = usage
+        self._cost_estimate = cost_estimate
+        self._model = model
         self._last_system_prompt: str | None = None
         self._last_user_prompt: str | None = None
 
@@ -54,6 +68,22 @@ class MockClient:
             raise EmptyLlmResponseError(msg)
 
         return self._response
+
+    def complete_with_usage(self, *, system_prompt: str, user_prompt: str) -> LlmResponse:
+        """Return fixed response with usage metadata."""
+        self._last_system_prompt = system_prompt
+        self._last_user_prompt = user_prompt
+
+        if self._response == "":
+            msg = "Mock client returned empty response"
+            raise EmptyLlmResponseError(msg)
+
+        return LlmResponse(
+            content=self._response,
+            usage=self._usage,
+            cost_estimate=self._cost_estimate,
+            model=self._model,
+        )
 
 
 class MockDeepSeekClient:

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from memory_distiller.domain.candidate import MemoryCandidate, ValidatedCandidate
 from memory_distiller.domain.memory_entry import MemoryDocument
+from memory_distiller.llm.models import LlmCostEstimate, LlmUsage
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,9 @@ class ExtractionRunResult:
     prompt: str
     raw_response: str
     candidates: list[MemoryCandidate]
+    usage: LlmUsage | None = None
+    cost_estimate: LlmCostEstimate | None = None
+    model: str | None = None
 
 
 @dataclass(frozen=True)
@@ -38,6 +42,9 @@ class ValidationRunResult:
     prompt: str
     raw_response: str
     validated_candidates: list[ValidatedCandidate]
+    usage: LlmUsage | None = None
+    cost_estimate: LlmCostEstimate | None = None
+    model: str | None = None
 
 
 @dataclass(frozen=True)
@@ -54,6 +61,9 @@ class MergeRunResult:
     prompt: str
     raw_response: str
     memory_document: MemoryDocument
+    usage: LlmUsage | None = None
+    cost_estimate: LlmCostEstimate | None = None
+    model: str | None = None
 
 
 @dataclass(frozen=True)
@@ -70,6 +80,9 @@ class CompressionRunResult:
     prompt: str
     raw_response: str
     memory_prompt: str
+    usage: LlmUsage | None = None
+    cost_estimate: LlmCostEstimate | None = None
+    model: str | None = None
 
 
 @dataclass(frozen=True)

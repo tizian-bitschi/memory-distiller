@@ -27,6 +27,23 @@ VALIDATION_RESULT: str = "validation_result"
 MERGE_RESULT: str = "merge_result"
 COMPRESSION_RESULT: str = "compression_result"
 
+# Usage and cost per step
+EXTRACT_USAGE: str = "extract_usage"
+EXTRACT_MODEL: str = "extract_model"
+VALIDATE_USAGE: str = "validate_usage"
+VALIDATE_MODEL: str = "validate_model"
+MERGE_USAGE: str = "merge_usage"
+MERGE_MODEL: str = "merge_model"
+COMPRESS_USAGE: str = "compress_usage"
+COMPRESS_MODEL: str = "compress_model"
+
+EXTRACT_COST: str = "extract_cost"
+VALIDATE_COST: str = "validate_cost"
+MERGE_COST: str = "merge_cost"
+COMPRESS_COST: str = "compress_cost"
+
+DEEPSEEK_BALANCE: str = "deepseek_balance"
+
 # Default values
 DEFAULT_MODE: str = "Prompt-only"
 DEFAULT_MODEL: str = "deepseek-v4-pro"
@@ -59,6 +76,20 @@ def initialize_session_state() -> None:
     st.session_state.setdefault(VALIDATION_RESULT, None)
     st.session_state.setdefault(MERGE_RESULT, None)
     st.session_state.setdefault(COMPRESSION_RESULT, None)
+    # Usage and cost tracking
+    st.session_state.setdefault(EXTRACT_USAGE, None)
+    st.session_state.setdefault(EXTRACT_MODEL, None)
+    st.session_state.setdefault(VALIDATE_USAGE, None)
+    st.session_state.setdefault(VALIDATE_MODEL, None)
+    st.session_state.setdefault(MERGE_USAGE, None)
+    st.session_state.setdefault(MERGE_MODEL, None)
+    st.session_state.setdefault(COMPRESS_USAGE, None)
+    st.session_state.setdefault(COMPRESS_MODEL, None)
+    st.session_state.setdefault(EXTRACT_COST, None)
+    st.session_state.setdefault(VALIDATE_COST, None)
+    st.session_state.setdefault(MERGE_COST, None)
+    st.session_state.setdefault(COMPRESS_COST, None)
+    st.session_state.setdefault(DEEPSEEK_BALANCE, None)
 
 
 def get_state_value(key: str, default: str | None = None) -> str | None:

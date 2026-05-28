@@ -104,6 +104,60 @@ class TestSessionStateKeys:
 
         assert COMPRESSION_RESULT == "compression_result"
 
+    def test_extract_usage_key(self):
+        """Extract usage key is defined."""
+        from memory_distiller.ui.state import EXTRACT_USAGE
+
+        assert EXTRACT_USAGE == "extract_usage"
+
+    def test_validate_usage_key(self):
+        """Validate usage key is defined."""
+        from memory_distiller.ui.state import VALIDATE_USAGE
+
+        assert VALIDATE_USAGE == "validate_usage"
+
+    def test_merge_usage_key(self):
+        """Merge usage key is defined."""
+        from memory_distiller.ui.state import MERGE_USAGE
+
+        assert MERGE_USAGE == "merge_usage"
+
+    def test_compress_usage_key(self):
+        """Compress usage key is defined."""
+        from memory_distiller.ui.state import COMPRESS_USAGE
+
+        assert COMPRESS_USAGE == "compress_usage"
+
+    def test_extract_cost_key(self):
+        """Extract cost key is defined."""
+        from memory_distiller.ui.state import EXTRACT_COST
+
+        assert EXTRACT_COST == "extract_cost"
+
+    def test_validate_cost_key(self):
+        """Validate cost key is defined."""
+        from memory_distiller.ui.state import VALIDATE_COST
+
+        assert VALIDATE_COST == "validate_cost"
+
+    def test_merge_cost_key(self):
+        """Merge cost key is defined."""
+        from memory_distiller.ui.state import MERGE_COST
+
+        assert MERGE_COST == "merge_cost"
+
+    def test_compress_cost_key(self):
+        """Compress cost key is defined."""
+        from memory_distiller.ui.state import COMPRESS_COST
+
+        assert COMPRESS_COST == "compress_cost"
+
+    def test_deepseek_balance_key(self):
+        """DeepSeek balance key is defined."""
+        from memory_distiller.ui.state import DEEPSEEK_BALANCE
+
+        assert DEEPSEEK_BALANCE == "deepseek_balance"
+
 
 class TestDefaultValues:
     """Tests for default value constants."""
@@ -193,6 +247,96 @@ class TestInitializeSessionState:
 
         initialize_session_state()
         assert patch_streamlit_session_state.get(TEMPERATURE) == DEFAULT_TEMPERATURE
+
+    def test_sets_default_extract_usage(self, patch_streamlit_session_state):
+        """Sets default extract_usage to None."""
+        from memory_distiller.ui.state import (
+            EXTRACT_USAGE,
+            initialize_session_state,
+        )
+
+        initialize_session_state()
+        assert patch_streamlit_session_state.get(EXTRACT_USAGE) is None
+
+    def test_sets_default_validate_usage(self, patch_streamlit_session_state):
+        """Sets default validate_usage to None."""
+        from memory_distiller.ui.state import (
+            VALIDATE_USAGE,
+            initialize_session_state,
+        )
+
+        initialize_session_state()
+        assert patch_streamlit_session_state.get(VALIDATE_USAGE) is None
+
+    def test_sets_default_merge_usage(self, patch_streamlit_session_state):
+        """Sets default merge_usage to None."""
+        from memory_distiller.ui.state import (
+            MERGE_USAGE,
+            initialize_session_state,
+        )
+
+        initialize_session_state()
+        assert patch_streamlit_session_state.get(MERGE_USAGE) is None
+
+    def test_sets_default_compress_usage(self, patch_streamlit_session_state):
+        """Sets default compress_usage to None."""
+        from memory_distiller.ui.state import (
+            COMPRESS_USAGE,
+            initialize_session_state,
+        )
+
+        initialize_session_state()
+        assert patch_streamlit_session_state.get(COMPRESS_USAGE) is None
+
+    def test_sets_default_extract_cost(self, patch_streamlit_session_state):
+        """Sets default extract_cost to None."""
+        from memory_distiller.ui.state import (
+            EXTRACT_COST,
+            initialize_session_state,
+        )
+
+        initialize_session_state()
+        assert patch_streamlit_session_state.get(EXTRACT_COST) is None
+
+    def test_sets_default_validate_cost(self, patch_streamlit_session_state):
+        """Sets default validate_cost to None."""
+        from memory_distiller.ui.state import (
+            VALIDATE_COST,
+            initialize_session_state,
+        )
+
+        initialize_session_state()
+        assert patch_streamlit_session_state.get(VALIDATE_COST) is None
+
+    def test_sets_default_merge_cost(self, patch_streamlit_session_state):
+        """Sets default merge_cost to None."""
+        from memory_distiller.ui.state import (
+            MERGE_COST,
+            initialize_session_state,
+        )
+
+        initialize_session_state()
+        assert patch_streamlit_session_state.get(MERGE_COST) is None
+
+    def test_sets_default_compress_cost(self, patch_streamlit_session_state):
+        """Sets default compress_cost to None."""
+        from memory_distiller.ui.state import (
+            COMPRESS_COST,
+            initialize_session_state,
+        )
+
+        initialize_session_state()
+        assert patch_streamlit_session_state.get(COMPRESS_COST) is None
+
+    def test_sets_default_deepseek_balance(self, patch_streamlit_session_state):
+        """Sets default deepseek_balance to None."""
+        from memory_distiller.ui.state import (
+            DEEPSEEK_BALANCE,
+            initialize_session_state,
+        )
+
+        initialize_session_state()
+        assert patch_streamlit_session_state.get(DEEPSEEK_BALANCE) is None
 
     def test_does_not_overwrite_existing_values(self, patch_streamlit_session_state):
         """Does not overwrite existing session state values."""

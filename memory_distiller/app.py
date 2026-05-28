@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import streamlit as st
 
+from memory_distiller.llm.errors import LlmProviderError, MissingApiKeyError
+from memory_distiller.ui.llm_factory import create_deepseek_client_from_session_state
 from memory_distiller.ui.pages import (
     render_compress_tab,
     render_extract_tab,
@@ -13,6 +15,7 @@ from memory_distiller.ui.pages import (
     render_validate_tab,
 )
 from memory_distiller.ui.state import (
+    DEEPSEEK_BALANCE,
     DEFAULT_MODE,
     DEFAULT_MODEL,
     DEFAULT_REASONING_EFFORT,
@@ -110,6 +113,30 @@ with st.sidebar:
         )
 
     st.caption("API key wird aus der Umgebungsvariable DEEPSEEK_API_KEY gelesen.")
+
+    if mode == "API":
+        st.divider()
+        if st.button("Check DeepSeek Balance", key="check_balance_btn"):
+            try:
+                client = create_deepseek_client_from_session_state()
+                balance = client.get_balance()
+                st.session_state[DEEPSEEK_BALANCE] = balance
+                if balance.is_available and balance.balance_infos:
+                    for info in balance.balance_infos:
+                        st.write(
+                            f"**{info.currency}:** "
+                            f"{info.total_balance:.2f} {info.currency}"
+                        )
+                        st.caption(
+                            f"Granted: {info.granted_balance:.2f} {info.currency} | "
+                            f"Topped up: {info.topped_up_balance:.2f} {info.currency}"
+                        )
+                else:
+                    st.info("Balance information not available.")
+            except MissingApiKeyError:
+                st.error("API key not found. Please ensure DEEPSEEK_API_KEY is set.")
+            except LlmProviderError as e:
+                st.error(f"Balance check failed: {e}")
 
 
 # ---------------------------------------------------------------------------

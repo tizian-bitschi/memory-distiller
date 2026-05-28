@@ -10,12 +10,15 @@ from memory_distiller.domain.memory_entry import MemoryDocument
 from memory_distiller.io.enum_aliases import normalize_memory_document
 from memory_distiller.io.memory_parser import parse_memory_document
 from memory_distiller.llm.errors import MissingApiKeyError
-from memory_distiller.ui.components import render_error, render_memory_summary
+from memory_distiller.ui.components import render_error, render_memory_summary, render_usage_summary
 from memory_distiller.ui.llm_factory import create_deepseek_client_from_session_state
 from memory_distiller.ui.state import (
     EXISTING_MEMORY,
     MEMORY_FULL_RAW,
+    MERGE_COST,
+    MERGE_MODEL,
     MERGE_RESULT,
+    MERGE_USAGE,
     MODE,
     VALIDATED_CANDIDATES_RAW,
 )
@@ -123,6 +126,9 @@ def _render_merge_api() -> None:
             )
             st.session_state[MERGE_RESULT] = result.memory_document
             st.session_state[MEMORY_FULL_RAW] = result.raw_response
+            st.session_state[MERGE_USAGE] = result.usage
+            st.session_state[MERGE_COST] = result.cost_estimate
+            st.session_state[MERGE_MODEL] = result.model
         except Exception as e:  # Broad catch at UI boundary to prevent app crash
             st.error(render_error(e))
             return
@@ -151,3 +157,9 @@ def _render_merge_api() -> None:
             st.subheader("Memory Document Summary")
             summary = render_memory_summary(memory_doc)
             st.json(summary)
+
+        usage = st.session_state.get(MERGE_USAGE)
+        cost = st.session_state.get(MERGE_COST)
+        model = st.session_state.get(MERGE_MODEL)
+        if usage is not None or cost is not None:
+            render_usage_summary("Merge", usage, cost, model)
