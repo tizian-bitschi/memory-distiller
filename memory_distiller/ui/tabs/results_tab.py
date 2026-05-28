@@ -21,13 +21,8 @@ def render_results_tab() -> None:
     memory_prompt_raw = st.session_state.get(MEMORY_PROMPT_RAW, "")
 
     st.subheader("Candidates Raw")
-    st.text_area(
-        "candidates.txt",
-        value=candidates_raw,
-        height=200,
-        key="results_candidates",
-    )
     if candidates_raw:
+        st.code(candidates_raw, language="text")
         st.download_button(
             "Download candidates.txt",
             data=build_text_download_payload(candidates_raw),
@@ -39,13 +34,8 @@ def render_results_tab() -> None:
         st.caption("No content available for download.")
 
     st.subheader("Validated Candidates Raw")
-    st.text_area(
-        "validated_candidates.txt",
-        value=validated_raw,
-        height=200,
-        key="results_validated",
-    )
     if validated_raw:
+        st.code(validated_raw, language="text")
         st.download_button(
             "Download validated_candidates.txt",
             data=build_text_download_payload(validated_raw),
@@ -57,13 +47,8 @@ def render_results_tab() -> None:
         st.caption("No content available for download.")
 
     st.subheader("Memory Full Raw")
-    st.text_area(
-        "memory_full.md",
-        value=memory_full_raw,
-        height=200,
-        key="results_memory_full",
-    )
     if memory_full_raw:
+        st.code(memory_full_raw, language="markdown")
         st.download_button(
             "Download memory_full.md",
             data=build_text_download_payload(memory_full_raw),
@@ -75,13 +60,8 @@ def render_results_tab() -> None:
         st.caption("No content available for download.")
 
     st.subheader("Memory Prompt Raw")
-    st.text_area(
-        "memory_prompt.md",
-        value=memory_prompt_raw,
-        height=200,
-        key="results_memory_prompt",
-    )
     if memory_prompt_raw:
+        st.code(memory_prompt_raw, language="markdown")
         st.download_button(
             "Download memory_prompt.md",
             data=build_text_download_payload(memory_prompt_raw),
