@@ -179,6 +179,20 @@ class TestRenderValidatorPrompt:
             assert "GLOBAL" not in example_section, "Example should use G, not GLOBAL"
             assert "STABLE" not in example_section, "Example should use D, not STABLE"
 
+    def test_contains_pref_vs_rule_guidance(self) -> None:
+        """Validator prompt explains PREF vs RULE type usage."""
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "Use TYPE = PREF" in result
+        assert "Use TYPE = RULE" in result
+        assert "preferences, defaults" in result
+        assert "hard constraints" in result
+
+    def test_contains_canonical_pref_example_for_metric_units(self) -> None:
+        """Validator prompt contains PREF example for metric units."""
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "P:RecipeBot|PREF|H|D" in result
+        assert "metric units" in result
+
 
 class TestRenderMergerPrompt:
     """Tests for render_merger_prompt."""
@@ -341,3 +355,11 @@ class TestRenderCompressorPrompt:
         result = render_compressor_prompt("memory_full", "next context")
         assert "<<<NEXT_CONTEXT" in result
         assert "NEXT_CONTEXT>>>" in result
+
+    def test_contains_empty_next_context_guidance(self) -> None:
+        """Compressor prompt guides handling of empty NEXT_CONTEXT."""
+        result = render_compressor_prompt("memory_full")
+        assert "If NEXT_CONTEXT is empty" in result
+        assert "general future chat" in result
+        assert "keep broadly useful global entries" in result
+        assert "high/medium priority project entries" in result
