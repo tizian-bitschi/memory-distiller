@@ -72,6 +72,24 @@ class TestPipelineService:
         assert "full memory content" in bundle.compressor_prompt
         assert "next context" in bundle.compressor_prompt
 
+    def test_existing_memory_appears_in_all_prompts(self) -> None:
+        """Regression test for Issue #22: existing_memory in all prompts."""
+        service = PipelineService()
+        existing = "G|RULE|H|D|Antworte standardmäßig auf Deutsch."
+        bundle = service.render_all_prompts(
+            existing_memory=existing,
+            chat_log="chat log content",
+            candidates="some candidates",
+            validated_candidates="some validated candidates",
+            memory_full="full memory",
+            next_context="next context",
+        )
+        assert existing in bundle.extractor_prompt
+        assert bundle.validator_prompt is not None
+        assert existing in bundle.validator_prompt
+        assert bundle.merger_prompt is not None
+        assert existing in bundle.merger_prompt
+
 
 class TestPipelineServiceUsesInjectedServices:
     """Tests verifying PipelineService delegates to injected services."""

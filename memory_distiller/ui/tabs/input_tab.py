@@ -42,15 +42,15 @@ def render_input_tab() -> None:
                     st.error(str(e))
                     st.session_state[LAST_CHAT_LOG_UPLOAD_NAME] = chat_log_file.name
     st.caption("Uploaded files are read into the current session only and are not written to disk.")
-    chat_log = st.text_area(
+    st.text_area(
         "Paste your chat log here",
-        value=st.session_state.get(CHAT_LOG, ""),
         height=300,
         placeholder="Enter chat log content...",
+        key=CHAT_LOG,
     )
-    st.session_state[CHAT_LOG] = chat_log
-    char_count_chat = len(chat_log)
-    token_count_chat = estimate_tokens(chat_log)
+    chat_log_value = st.session_state.get(CHAT_LOG, "")
+    char_count_chat = len(chat_log_value)
+    token_count_chat = estimate_tokens(chat_log_value)
     st.caption(f"Characters: {char_count_chat} | Estimated tokens: {token_count_chat}")
 
     st.subheader("Existing Memory")
@@ -80,25 +80,25 @@ def render_input_tab() -> None:
                     st.error(str(e))
                     st.session_state[LAST_EXISTING_MEMORY_UPLOAD_NAME] = existing_memory_file.name
     st.caption("Uploaded files are read into the current session only and are not written to disk.")
-    existing_memory = st.text_area(
+    st.text_area(
         "Load existing memory (optional)",
-        value=st.session_state.get(EXISTING_MEMORY, ""),
         height=200,
         placeholder="Enter existing memory content...",
+        key=EXISTING_MEMORY,
     )
-    st.session_state[EXISTING_MEMORY] = existing_memory
-    char_count_memory = len(existing_memory)
-    token_count_memory = estimate_tokens(existing_memory)
+    existing_memory_value = st.session_state.get(EXISTING_MEMORY, "")
+    char_count_memory = len(existing_memory_value)
+    token_count_memory = estimate_tokens(existing_memory_value)
     st.caption(f"Characters: {char_count_memory} | Estimated tokens: {token_count_memory}")
 
     st.subheader("Next Context")
-    next_context = st.text_area(
+    st.text_area(
         "Next context hint (optional)",
-        value=st.session_state.get(NEXT_CONTEXT, ""),
         height=100,
         placeholder="Enter next context...",
+        key=NEXT_CONTEXT,
     )
-    st.session_state[NEXT_CONTEXT] = next_context
-    char_count_context = len(next_context)
-    token_count_context = estimate_tokens(next_context)
+    next_context_value = st.session_state.get(NEXT_CONTEXT, "")
+    char_count_context = len(next_context_value)
+    token_count_context = estimate_tokens(next_context_value)
     st.caption(f"Characters: {char_count_context} | Estimated tokens: {token_count_context}")
