@@ -10,12 +10,19 @@ from memory_distiller.domain.errors import ParseErrorCollection
 from memory_distiller.io.candidate_parser import parse_candidates
 from memory_distiller.io.enum_aliases import normalize_candidate_lines
 from memory_distiller.llm.errors import MissingApiKeyError
-from memory_distiller.ui.components import render_candidate_table, render_error
+from memory_distiller.ui.components import (
+    render_candidate_table,
+    render_error,
+    render_usage_summary,
+)
 from memory_distiller.ui.llm_factory import create_deepseek_client_from_session_state
 from memory_distiller.ui.state import (
     CANDIDATES_RAW,
     CHAT_LOG,
     EXISTING_MEMORY,
+    EXTRACT_COST,
+    EXTRACT_MODEL,
+    EXTRACT_USAGE,
     EXTRACTION_RESULT,
     MODE,
 )
@@ -118,6 +125,9 @@ def _render_extract_api() -> None:
             )
             st.session_state[EXTRACTION_RESULT] = result.candidates
             st.session_state[CANDIDATES_RAW] = result.raw_response
+            st.session_state[EXTRACT_USAGE] = result.usage
+            st.session_state[EXTRACT_COST] = result.cost_estimate
+            st.session_state[EXTRACT_MODEL] = result.model
         except Exception as e:  # Broad catch at UI boundary to prevent app crash
             st.error(render_error(e))
             return
@@ -144,3 +154,9 @@ def _render_extract_api() -> None:
             table_data = render_candidate_table(candidates)
             if table_data:
                 st.dataframe(table_data, use_container_width=True)
+
+        usage = st.session_state.get(EXTRACT_USAGE)
+        cost = st.session_state.get(EXTRACT_COST)
+        model = st.session_state.get(EXTRACT_MODEL)
+        if usage is not None or cost is not None:
+            render_usage_summary("Extraction", usage, cost, model)

@@ -50,6 +50,25 @@ class ExtractionService:
             ParseErrorCollection: If LLM response cannot be parsed.
         """
         prompt = render_extractor_prompt(existing_memory, chat_log)
-        raw_response = llm_client.complete(system_prompt=system_prompt, user_prompt=prompt)
+        if hasattr(llm_client, "complete_with_usage"):
+            llm_response = llm_client.complete_with_usage(
+                system_prompt=system_prompt, user_prompt=prompt
+            )
+            raw_response = llm_response.content
+            usage = llm_response.usage
+            cost_estimate = llm_response.cost_estimate
+            model = llm_response.model
+        else:
+            raw_response = llm_client.complete(system_prompt=system_prompt, user_prompt=prompt)
+            usage = None
+            cost_estimate = None
+            model = None
         candidates = parse_candidates(raw_response)
-        return ExtractionRunResult(prompt=prompt, raw_response=raw_response, candidates=candidates)
+        return ExtractionRunResult(
+            prompt=prompt,
+            raw_response=raw_response,
+            candidates=candidates,
+            usage=usage,
+            cost_estimate=cost_estimate,
+            model=model,
+        )

@@ -109,6 +109,49 @@ To fix: review the LLM output, correct the format, and re-paste. The app remains
 
 **Repairing common enum aliases**: The Extract, Validate, and Merge tabs include a "Repair common enum aliases" button. This converts known aliases to their canonical forms (PREFERENCE→PREF, GLOBAL→G, PROJECT:X→P:X, HIGH→H, STABLE→D, etc.). Free-text fields such as STATEMENT, EVIDENCE, and REASON are never modified. Only known aliases are repaired; unknown values still cause parse failures and must be corrected manually.
 
+## API Usage and Cost Transparency
+
+When running in **API mode**, the app shows estimated token usage and cost per pipeline step. After each API call (Extract, Validate, Merge, Compress), an expandable "Usage & Cost" section appears with:
+
+- **Model** used for the call
+- **Prompt tokens** — total input tokens
+- **Cache hit tokens** — tokens served from cache (lower cost)
+- **Cache miss tokens** — tokens not in cache (standard cost)
+- **Completion tokens** — output tokens
+- **Reasoning tokens** — thinking/reasoning tokens (when returned by the model)
+- **Total tokens** — overall token count
+- **Estimated cost in USD**
+
+### Cost Estimates
+
+Costs are calculated from manually configured DeepSeek pricing and may differ if the provider changes prices. The estimate uses:
+
+- `deepseek-v4-flash` — input cache hit: $0.0028 per 1M tokens, cache miss: $0.14 per 1M, output: $0.28 per 1M
+- `deepseek-v4-pro` — input cache hit: $0.003625 per 1M tokens, cache miss: $0.435 per 1M, output: $0.87 per 1M
+
+If the API response does not include cache hit/miss breakdown, all prompt tokens are treated as cache miss and a fallback note is shown.
+
+### Run-Level Summary
+
+The **Export / Results** tab shows an aggregated usage summary and total estimated cost across all pipeline steps that ran in API mode.
+
+### DeepSeek Balance Check
+
+In API mode, the sidebar includes a **"Check DeepSeek Balance"** button. Clicking it fetches your current account balance (requires `DEEPSEEK_API_KEY`). The balance shows:
+
+- Total balance per currency
+- Granted balance (promotional credits)
+- Topped-up balance (purchased credits)
+
+The balance is **not** checked automatically — you must click the button. Balance data is kept in session state only and is not persisted.
+
+### Important Notes
+
+- All cost figures are **estimates** for transparency, not exact billing amounts.
+- Your **API key is never shown** in the UI or stored in the app.
+- Usage and balance data are kept **in session state only** and disappear when you refresh the page.
+- No usage or balance data is written to disk.
+
 ## Privacy Notes
 
 **Prompt-only mode**: Your data stays in the browser session. Nothing is sent to any external service.

@@ -6,9 +6,12 @@ import streamlit as st
 
 from memory_distiller.application.compression_service import CompressionService
 from memory_distiller.llm.errors import MissingApiKeyError
-from memory_distiller.ui.components import render_error
+from memory_distiller.ui.components import render_error, render_usage_summary
 from memory_distiller.ui.llm_factory import create_deepseek_client_from_session_state
 from memory_distiller.ui.state import (
+    COMPRESS_COST,
+    COMPRESS_MODEL,
+    COMPRESS_USAGE,
     COMPRESSION_RESULT,
     MEMORY_FULL_RAW,
     MEMORY_PROMPT_RAW,
@@ -113,6 +116,9 @@ def _render_compress_api() -> None:
             )
             st.session_state[COMPRESSION_RESULT] = result.memory_prompt
             st.session_state[MEMORY_PROMPT_RAW] = result.raw_response
+            st.session_state[COMPRESS_USAGE] = result.usage
+            st.session_state[COMPRESS_COST] = result.cost_estimate
+            st.session_state[COMPRESS_MODEL] = result.model
         except Exception as e:  # Broad catch at UI boundary to prevent app crash
             st.error(render_error(e))
             return
@@ -137,3 +143,9 @@ def _render_compress_api() -> None:
             height=200,
             key="compress_result_display",
         )
+
+        usage = st.session_state.get(COMPRESS_USAGE)
+        cost = st.session_state.get(COMPRESS_COST)
+        model = st.session_state.get(COMPRESS_MODEL)
+        if usage is not None or cost is not None:
+            render_usage_summary("Compression", usage, cost, model)

@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import os
+import urllib.error
+import urllib.request
+from decimal import Decimal
 from typing import Any
 
 from openai import OpenAI
@@ -13,6 +17,13 @@ from memory_distiller.llm.errors import (
     LlmProviderError,
     MissingApiKeyError,
 )
+from memory_distiller.llm.models import (
+    DeepSeekBalance,
+    DeepSeekBalanceInfo,
+    LlmResponse,
+    LlmUsage,
+)
+from memory_distiller.llm.pricing import estimate_cost
 
 # Models that are no longer supported
 _DEPRECATED_MODELS = {"deepseek-chat", "deepseek-reasoner"}
@@ -106,6 +117,25 @@ class DeepSeekClient:
             EmptyLlmResponseError: If response is empty.
             LlmProviderError: On provider errors.
         """
+        return self.complete_with_usage(
+            system_prompt=system_prompt, user_prompt=user_prompt
+        ).content
+
+    def complete_with_usage(self, *, system_prompt: str, user_prompt: str) -> LlmResponse:
+        """Generate completion from DeepSeek with usage metadata.
+
+        Args:
+            system_prompt: System prompt for context.
+            user_prompt: User prompt/query.
+
+        Returns:
+            LlmResponse with content, usage, cost estimate, and model.
+
+        Raises:
+            MissingApiKeyError: If API key is not set.
+            EmptyLlmResponseError: If response is empty.
+            LlmProviderError: On provider errors.
+        """
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -124,4 +154,105 @@ class DeepSeekClient:
             raise EmptyLlmResponseError(msg)
 
         assert isinstance(content, str)
-        return content
+
+        usage = self._extract_usage(response)
+        model = getattr(response, "model", None) or self._config.model
+        cost = estimate_cost(usage, model)
+
+        return LlmResponse(
+            content=content,
+            usage=usage,
+            cost_estimate=cost,
+            model=model,
+        )
+
+    def _extract_usage(self, response: Any) -> LlmUsage | None:
+        """Safely extract usage from OpenAI response object."""
+        usage_obj = getattr(response, "usage", None)
+        if usage_obj is None:
+            return None
+
+        prompt_tokens = getattr(usage_obj, "prompt_tokens", None)
+        completion_tokens = getattr(usage_obj, "completion_tokens", None)
+        total_tokens = getattr(usage_obj, "total_tokens", None)
+
+        prompt_cache_hit_tokens = getattr(usage_obj, "prompt_cache_hit_tokens", None)
+        prompt_cache_miss_tokens = getattr(usage_obj, "prompt_cache_miss_tokens", None)
+
+        reasoning_tokens = None
+        completion_details = getattr(usage_obj, "completion_tokens_details", None)
+        if completion_details is not None:
+            reasoning_tokens = getattr(completion_details, "reasoning_tokens", None)
+
+        # Only return LlmUsage if we have at least some token data
+        if prompt_tokens is None and completion_tokens is None and total_tokens is None:
+            return None
+
+        return LlmUsage(
+            prompt_tokens=prompt_tokens,
+            prompt_cache_hit_tokens=prompt_cache_hit_tokens,
+            prompt_cache_miss_tokens=prompt_cache_miss_tokens,
+            completion_tokens=completion_tokens,
+            reasoning_tokens=reasoning_tokens,
+            total_tokens=total_tokens,
+        )
+
+    def get_balance(self) -> DeepSeekBalance:
+        """Fetch DeepSeek account balance.
+
+        Returns:
+            DeepSeekBalance with account balance info.
+
+        Raises:
+            LlmProviderError: On HTTP/API/parsing errors.
+        """
+        url = f"{self._config.base_url}/user/balance"
+        req = urllib.request.Request(
+            url,
+            headers={"Authorization": f"Bearer {self._api_key}"},
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            msg = f"DeepSeek balance HTTP error: {exc.code}"
+            raise LlmProviderError(msg) from exc
+        except urllib.error.URLError as exc:
+            msg = f"DeepSeek balance connection error: {exc.reason}"
+            raise LlmProviderError(msg) from exc
+        except json.JSONDecodeError as exc:
+            msg = f"DeepSeek balance invalid JSON: {exc}"
+            raise LlmProviderError(msg) from exc
+        except Exception as exc:
+            msg = f"DeepSeek balance error: {exc}"
+            raise LlmProviderError(msg) from exc
+
+        return self._parse_balance(data)
+
+    def _parse_balance(self, data: dict[str, Any]) -> DeepSeekBalance:
+        """Parse balance JSON response."""
+        try:
+            is_available = data.get("is_available", False)
+            raw_infos = data.get("balance_infos", [])
+            infos = []
+            for info in raw_infos:
+                currency = info["currency"]
+                total_balance = Decimal(str(info["total_balance"]))
+                granted_balance = Decimal(str(info["granted_balance"]))
+                topped_up_balance = Decimal(str(info["topped_up_balance"]))
+                infos.append(
+                    DeepSeekBalanceInfo(
+                        currency=currency,
+                        total_balance=total_balance,
+                        granted_balance=granted_balance,
+                        topped_up_balance=topped_up_balance,
+                    )
+                )
+            return DeepSeekBalance(
+                is_available=is_available,
+                balance_infos=tuple(infos),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            msg = f"DeepSeek balance parse error: {exc}"
+            raise LlmProviderError(msg) from exc

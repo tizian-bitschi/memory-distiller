@@ -10,13 +10,20 @@ from memory_distiller.domain.errors import ParseErrorCollection
 from memory_distiller.io.candidate_parser import parse_validated_candidates
 from memory_distiller.io.enum_aliases import normalize_candidate_lines
 from memory_distiller.llm.errors import MissingApiKeyError
-from memory_distiller.ui.components import render_error, render_validated_candidate_table
+from memory_distiller.ui.components import (
+    render_error,
+    render_usage_summary,
+    render_validated_candidate_table,
+)
 from memory_distiller.ui.llm_factory import create_deepseek_client_from_session_state
 from memory_distiller.ui.state import (
     CANDIDATES_RAW,
     CHAT_LOG,
     EXISTING_MEMORY,
     MODE,
+    VALIDATE_COST,
+    VALIDATE_MODEL,
+    VALIDATE_USAGE,
     VALIDATED_CANDIDATES_RAW,
     VALIDATION_RESULT,
 )
@@ -134,6 +141,9 @@ def _render_validate_api() -> None:
             )
             st.session_state[VALIDATION_RESULT] = result.validated_candidates
             st.session_state[VALIDATED_CANDIDATES_RAW] = result.raw_response
+            st.session_state[VALIDATE_USAGE] = result.usage
+            st.session_state[VALIDATE_COST] = result.cost_estimate
+            st.session_state[VALIDATE_MODEL] = result.model
         except Exception as e:  # Broad catch at UI boundary to prevent app crash
             st.error(render_error(e))
             return
@@ -164,3 +174,9 @@ def _render_validate_api() -> None:
             table_data = render_validated_candidate_table(validated)
             if table_data:
                 st.dataframe(table_data, use_container_width=True)
+
+        usage = st.session_state.get(VALIDATE_USAGE)
+        cost = st.session_state.get(VALIDATE_COST)
+        model = st.session_state.get(VALIDATE_MODEL)
+        if usage is not None or cost is not None:
+            render_usage_summary("Validation", usage, cost, model)
