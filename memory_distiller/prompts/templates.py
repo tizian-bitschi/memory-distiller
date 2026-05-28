@@ -112,8 +112,12 @@ INVALID-ALIAS WARNING:
 
 Canonical Example (valid output):
 M1|KEEP|ADD|-|P:RecipeBot|RULE|H|D|All recipes in RecipeBot must be vegetarian.|User explicitly asked to remember this for RecipeBot.|Well-supported project rule.
-M2|EDIT|ADD|-|P:RecipeBot|PREF|M|D|RecipeBot should use metric units by default.|User asked to use metric units.|Better represented as a preference than a hard rule.
+M2|EDIT|ADD|-|P:RecipeBot|PREF|H|D|RecipeBot should use metric units by default.|User asked to use metric units.|Better represented as a preference/default than a hard rule.
 M3|DROP|IGNORE|-|T|FACT|L|T|The user is only testing today.|User said this should not be remembered permanently.|Temporary detail.
+
+Guidance for TYPE classification:
+- Use TYPE = PREF for preferences, defaults, stylistic tendencies, and soft conventions.
+- Use TYPE = RULE only for hard constraints, explicit must/never/always behavior, safety constraints, or explicit technical/storage requirements.
 
 Rules:
 - For KEEP or EDIT, STATEMENT must be final usable memory text.
@@ -228,6 +232,8 @@ Task:
 2. Remove temporary, deprecated, and irrelevant entries.
 3. Keep global high-priority rules.
 4. Keep project-related entries only if they fit the target context.
+   - If NEXT_CONTEXT is empty or whitespace-only, assume a general future chat. In that case, keep broadly useful global entries and high/medium priority project entries instead of dropping project context.
+   - Only omit project entries when a non-empty NEXT_CONTEXT clearly makes them irrelevant.
 5. Formulate extremely compact.
 6. No full sentences when bullet points suffice.
 7. Maximum 25 lines.
