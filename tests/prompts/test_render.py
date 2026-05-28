@@ -56,6 +56,45 @@ class TestRenderExtractorPrompt:
         with pytest.raises(ValueError, match="chat_log is required"):
             render_extractor_prompt("existing", None)  # type: ignore
 
+    def test_contains_english_instruction_text(self) -> None:
+        """Extractor prompt contains English instruction text."""
+        result = render_extractor_prompt("", "chat")
+        assert "You are a memory extractor" in result
+
+    def test_contains_invalid_alias_warning(self) -> None:
+        """Extractor prompt warns against invalid aliases."""
+        result = render_extractor_prompt("", "chat")
+        assert "INVALID-ALIAS WARNING" in result
+        assert "PREFERENCE" in result
+        assert "GLOBAL" in result
+
+    def test_contains_canonical_example_with_project_scope(self) -> None:
+        """Extractor prompt contains valid canonical example with P:RecipeBot."""
+        result = render_extractor_prompt("", "chat")
+        assert "P:RecipeBot" in result
+
+    def test_contains_canonical_example_with_priority_and_stability(self) -> None:
+        """Extractor prompt contains valid canonical example with H and D."""
+        result = render_extractor_prompt("", "chat")
+        assert "|H|D|" in result
+
+    def test_canonical_example_does_not_use_invalid_aliases(self) -> None:
+        """Canonical example does not use invalid aliases like PREFERENCE or GLOBAL."""
+        result = render_extractor_prompt("", "chat")
+        # Extract the portion after "Canonical Example"
+        if "Canonical Example" in result:
+            example_start = result.find("Canonical Example")
+            example_section = result[example_start:]
+            # The example should be before "Do not output any explanation"
+            if "Do not output any explanation" in example_section:
+                example_section = example_section[
+                    : example_section.find("Do not output any explanation")
+                ]
+            # Check that invalid aliases are not in the example section
+            assert "PREFERENCE" not in example_section, "Example should use PREF, not PREFERENCE"
+            assert "GLOBAL" not in example_section, "Example should use G, not GLOBAL"
+            assert "STABLE" not in example_section, "Example should use D, not STABLE"
+
 
 class TestRenderValidatorPrompt:
     """Tests for render_validator_prompt."""
@@ -111,6 +150,35 @@ class TestRenderValidatorPrompt:
         with pytest.raises(ValueError, match="candidates is required"):
             render_validator_prompt("existing", "chat", None)  # type: ignore
 
+    def test_contains_english_instruction_text(self) -> None:
+        """Validator prompt contains English instruction text."""
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "You are a strict memory validator" in result
+
+    def test_contains_invalid_alias_warning(self) -> None:
+        """Validator prompt warns against invalid aliases."""
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "INVALID-ALIAS WARNING" in result
+        assert "PREFERENCE" in result
+        assert "GLOBAL" in result
+
+    def test_contains_canonical_example_with_pref(self) -> None:
+        """Validator prompt contains valid canonical example with PREF."""
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "PREF" in result
+
+    def test_canonical_example_does_not_use_invalid_aliases(self) -> None:
+        """Canonical example does not use invalid aliases like PREFERENCE or GLOBAL."""
+        result = render_validator_prompt("", "chat", "candidates")
+        if "Canonical Example" in result:
+            example_start = result.find("Canonical Example")
+            example_section = result[example_start:]
+            if "Rules:" in example_section:
+                example_section = example_section[: example_section.find("Rules:")]
+            assert "PREFERENCE" not in example_section, "Example should use PREF, not PREFERENCE"
+            assert "GLOBAL" not in example_section, "Example should use G, not GLOBAL"
+            assert "STABLE" not in example_section, "Example should use D, not STABLE"
+
 
 class TestRenderMergerPrompt:
     """Tests for render_merger_prompt."""
@@ -154,6 +222,60 @@ class TestRenderMergerPrompt:
         with pytest.raises(ValueError, match="validated_candidates is required"):
             render_merger_prompt("existing", None)  # type: ignore
 
+    def test_contains_english_instruction_text(self) -> None:
+        """Merger prompt contains English instruction text."""
+        result = render_merger_prompt("", "validated")
+        assert "You are a memory merger" in result
+
+    def test_contains_invalid_alias_warning(self) -> None:
+        """Merger prompt warns against invalid aliases."""
+        result = render_merger_prompt("", "validated")
+        assert "INVALID-ALIAS WARNING" in result
+        assert "PREFERENCE" in result
+        assert "GLOBAL" in result
+
+    def test_contains_memory_full_header(self) -> None:
+        """Merger prompt contains # MEMORY_FULL header."""
+        result = render_merger_prompt("", "validated")
+        assert "# MEMORY_FULL" in result
+
+    def test_contains_global_section_header(self) -> None:
+        """Merger prompt contains ## GLOBAL section header."""
+        result = render_merger_prompt("", "validated")
+        assert "## GLOBAL" in result
+
+    def test_contains_projects_section_header(self) -> None:
+        """Merger prompt contains ## PROJECTS section header."""
+        result = render_merger_prompt("", "validated")
+        assert "## PROJECTS" in result
+
+    def test_contains_canonical_example_with_g_rule(self) -> None:
+        """Merger prompt contains valid canonical example with G|RULE|H|D."""
+        result = render_merger_prompt("", "validated")
+        assert "G|RULE|H|D" in result
+
+    def test_contains_canonical_example_with_project_pref(self) -> None:
+        """Merger prompt contains valid canonical example with P:RecipeBot|PREF|H|D."""
+        result = render_merger_prompt("", "validated")
+        assert "P:RecipeBot|PREF|H|D" in result
+
+    def test_canonical_example_does_not_use_invalid_aliases(self) -> None:
+        """Canonical example does not use invalid aliases like PREFERENCE or GLOBAL as values."""
+        result = render_merger_prompt("", "validated")
+        if "Canonical Example" in result:
+            example_start = result.find("Canonical Example")
+            example_section = result[example_start:]
+            if "Rules:" in example_section:
+                example_section = example_section[: example_section.find("Rules:")]
+            # Check that invalid aliases do NOT appear as values in data lines
+            # The ## GLOBAL header is valid (section header format), but "GLOBAL|" as a value is not
+            assert "GLOBAL|" not in example_section, "Example should use G, not GLOBAL"
+            assert "PREFERENCE" not in example_section, "Example should use PREF, not PREFERENCE"
+            assert "STABLE|" not in example_section, "Example should use D, not STABLE"
+            assert "PROJECT|" not in example_section, "Example should use P:<name>, not PROJECT"
+            assert "REPO|" not in example_section, "Example should use R:<name>, not REPO"
+            assert "TEMPORARY|" not in example_section, "Example should use T, not TEMPORARY"
+
 
 class TestRenderCompressorPrompt:
     """Tests for render_compressor_prompt."""
@@ -196,3 +318,20 @@ class TestRenderCompressorPrompt:
         """Missing memory_full raises ValueError."""
         with pytest.raises(ValueError, match="memory_full is required"):
             render_compressor_prompt(None, "next")  # type: ignore
+
+    def test_contains_english_instruction_text(self) -> None:
+        """Compressor prompt contains English instruction text."""
+        result = render_compressor_prompt("memory_full")
+        assert "You are a memory compressor" in result
+
+    def test_contains_memory_full_delimiter(self) -> None:
+        """Compressor prompt contains MEMORY_FULL delimiter block."""
+        result = render_compressor_prompt("memory_full")
+        assert "<<<MEMORY_FULL" in result
+        assert "MEMORY_FULL>>>" in result
+
+    def test_contains_next_context_delimiter(self) -> None:
+        """Compressor prompt contains NEXT_CONTEXT delimiter block."""
+        result = render_compressor_prompt("memory_full", "next context")
+        assert "<<<NEXT_CONTEXT" in result
+        assert "NEXT_CONTEXT>>>" in result
