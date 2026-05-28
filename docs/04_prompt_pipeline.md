@@ -1,33 +1,33 @@
-# Prompt-Pipeline
+# Prompt Pipeline
 
-## Ziel
+## Goal
 
-Die Prompt-Pipeline erzeugt aus Chatverläufen keinen normalen Summary-Text, sondern überprüfbare Memory-Einträge.
+The prompt pipeline produces verifiable memory entries from chat logs, not a normal summary text.
 
-Der MVP startet mit vier Schritten:
-
-```text
-Chatverlauf → Extractor → Validator → Merger → Compressor
-```
-
-Optional kommt ein fünfter Schritt hinzu:
+The MVP starts with four steps:
 
 ```text
-ASK/CONFLICT → Conflict Clarifier → User-Antwort → Memory Update
+Chat Log → Extractor → Validator → Merger → Compressor
 ```
 
-## Schritt 1: Extractor
+An optional fifth step may be added:
 
-Zweck:
+```text
+ASK/CONFLICT → Conflict Clarifier → User Response → Memory Update
+```
 
-- Kandidaten für neue oder geänderte Memory-Einträge finden.
-- Zwischen globalem, projektbezogenem und temporärem Kontext unterscheiden.
-- User-Korrekturen besonders berücksichtigen.
+## Step 1: Extractor
+
+Purpose:
+
+- Find candidates for new or changed memory entries.
+- Distinguish between global, project-specific, and temporary context.
+- Give special attention to user corrections.
 
 Input:
 
-- Chatverlauf
-- optional bestehender Memory
+- Chat log
+- optional existing memory
 
 Output:
 
@@ -35,20 +35,20 @@ Output:
 ID|ACTION|TARGET|SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|REASON
 ```
 
-Qualitätskriterien:
+Quality Criteria:
 
-- keine Assistentenvorschläge ohne User-Bestätigung
-- keine normalen Zusammenfassungen
-- keine zu breiten Generalisierungen
-- atomare Einträge
+- No assistant suggestions without user confirmation
+- No normal summaries
+- No overly broad generalizations
+- Atomic entries
 
-## Schritt 2: Validator
+## Step 2: Validator
 
-Zweck:
+Purpose:
 
-- Extractor-Kandidaten kritisch prüfen.
-- Falsche, zu allgemeine oder schlecht belegte Einträge verwerfen.
-- Scope und Stability korrigieren.
+- Critically review extractor candidates.
+- Discard incorrect, overly general, or poorly supported entries.
+- Correct scope and stability.
 
 Output:
 
@@ -56,17 +56,17 @@ Output:
 ID|VERDICT|ACTION|TARGET|SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|REASON
 ```
 
-Validator-Regel:
+Validator Rule:
 
-Hohe Precision ist wichtiger als hoher Recall. Lieber nichts speichern als falsches dauerhaftes Memory.
+High precision is more important than high recall. Better to store nothing than to store incorrect permanent memory.
 
-## Schritt 3: Merger
+## Step 3: Merger
 
-Zweck:
+Purpose:
 
-- bestehendes Memory und validierte Kandidaten zu einer neuen `memory_full.md` zusammenführen.
-- Updates, Deprecations und Konflikte sichtbar machen.
-- offene Klärungen separat sammeln.
+- Merge existing memory and validated candidates into a new `memory_full.md`.
+- Make updates, deprecations, and conflicts visible.
+- Collect open questions separately.
 
 Output:
 
@@ -75,14 +75,14 @@ Output:
 ...
 ```
 
-## Schritt 4: Compressor
+## Step 4: Compressor
 
-Zweck:
+Purpose:
 
-- aus `memory_full.md` einen kompakten Promptblock erzeugen.
-- Evidence entfernen.
-- irrelevante Projektregeln weglassen.
-- nicht mehr als ca. 20-25 Zeilen erzeugen.
+- Produce a compact prompt block from `memory_full.md`.
+- Remove evidence.
+- Omit irrelevant project rules.
+- Produce no more than about 20-25 lines.
 
 Output:
 
@@ -91,141 +91,164 @@ Output:
 ...
 ```
 
-## Prompt: Extractor mit bestehendem Memory
+## Prompt: Extractor with Existing Memory
 
 ```text
-Du bist ein Memory-Extractor und vergleichst einen neuen Chatverlauf mit bestehendem Memory.
+You are a memory extractor comparing a new chat log with existing memory.
 
-Ziel:
-Extrahiere neue, geänderte oder widersprüchliche Memory-Kandidaten aus dem Chat.
+Goal:
+Extract new, changed, or conflicting memory candidates from the chat.
 
-Bestehender Memory:
+Existing Memory:
 <<<MEMORY
-[HIER BESTEHENDEN MEMORY EINFÜGEN]
+[INSERT EXISTING MEMORY HERE]
 MEMORY>>>
 
-Neuer Chatverlauf:
+New Chat Log:
 <<<CHAT
-[HIER CHATVERLAUF EINFÜGEN]
+[INSERT CHAT LOG HERE]
 CHAT>>>
 
-Aufgabe:
-1. Finde neue wiederverwendbare Regeln, Präferenzen, Projektfakten, Entscheidungen, Vermeidungsregeln, Terminologie und offene Aufgaben.
-2. Prüfe, ob bestehende Memory-Einträge aktualisiert, abgeschwächt, ersetzt oder gelöscht werden sollten.
-3. Speichere keine temporären Details als dauerhaft.
-4. Speichere keine Assistentenvorschläge, außer sie wurden vom User bestätigt.
-5. Markiere unklare Fälle als ASK.
-6. Markiere Widersprüche als CONFLICT.
-7. Vermeide Duplikate zu bestehendem Memory.
+Task:
+1. Find new reusable rules, preferences, project facts, decisions, avoidance rules, terminology, and open tasks.
+2. Check whether existing memory entries should be updated, weakened, replaced, or deleted.
+3. Do not store temporary details as permanent.
+4. Do not store assistant suggestions unless confirmed by the user.
+5. Mark unclear cases as ASK.
+6. Mark conflicts as CONFLICT.
+7. Avoid duplicates to existing memory.
 
 Output-Format:
-Gib ausschließlich Zeilen in diesem Format aus:
+Output only lines in this format:
 
 ID|ACTION|TARGET|SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|REASON
 
-Legende:
+Legend:
 ACTION = ADD, UPDATE, DEPRECATE, IGNORE, CONFLICT, ASK
-TARGET = ID oder Kurztext des betroffenen bestehenden Memory-Eintrags; bei ADD: -
-SCOPE = G oder P:<Projektname> oder R:<Repo/Codebase> oder T
+TARGET = ID or short text of affected existing memory entry; for ADD: -
+SCOPE = G or P:<project-name> or R:<repo/codebase> or T
 TYPE = RULE, PREF, FACT, DECISION, AVOID, STYLE, SOURCE, TERM, TASK, CONFLICT
 PRIO = H, M, L
 STABILITY = D, M, T
 
-Beurteilungskriterien:
-- Hohe Precision ist wichtiger als hoher Recall.
-- Lieber einen zweifelhaften Eintrag als ASK markieren als falsch speichern.
-- Globale Regeln nur verwenden, wenn sie wirklich projektübergreifend gelten.
-- Projektregeln immer mit Projektname versehen.
-- Aussagen über den User nicht unnötig persönlich formulieren.
-- Sensible Informationen nur aufnehmen, wenn sie explizit als dauerhaft relevant erscheinen.
+Evaluation Criteria:
+- High precision is more important than high recall.
+- Better to mark a doubtful entry as ASK than to store it incorrectly.
+- Use global rules only when they truly apply across projects.
+- Always label project rules with the project name.
+- Do not phrase statements about the user in unnecessarily personal ways.
+- Include sensitive information only when it appears to be explicitly permanently relevant.
 
-Gib keine Erklärung außerhalb der Kandidatenliste aus.
+INVALID-ALIAS WARNING:
+- Do NOT use these as SCOPE field values: GLOBAL, PROJECT, REPO, TEMPORARY.
+  Use SCOPE values only as: G, P:<name>, R:<name>, T.
+- Do NOT use: PREFERENCE. Use: PREF.
+- Do NOT use: HIGH, MEDIUM, LOW. Use: H, M, L.
+- Do NOT use: STABLE, DURABLE. Use: D, M, T.
+
+Canonical Example (valid output):
+M1|ADD|-|P:RecipeBot|RULE|H|D|All recipes in RecipeBot must be vegetarian.|User explicitly asked to remember this for RecipeBot.|Reusable project rule.
+M2|IGNORE|-|T|FACT|L|T|The user is only testing today.|User said this should not be remembered permanently.|Temporary detail.
+
+Do not output any explanation outside the candidate list.
 ```
 
 ## Prompt: Validator
 
 ```text
-Du bist ein strenger Memory-Validator.
+You are a strict memory validator.
 
-Aufgabe:
-Prüfe die folgenden Memory-Kandidaten gegen den Chatverlauf und den bestehenden Memory.
+Task:
+Check the following memory candidates against the chat log and existing memory.
 
-Du sollst Kandidaten entfernen, abschwächen oder korrigieren, wenn sie:
-- nicht ausreichend belegt sind
-- zu stark verallgemeinern
-- nur vom Assistenten behauptet wurden
-- temporär sind, aber dauerhaft markiert wurden
-- mehrere Aussagen vermischen
-- redundant zum bestehenden Memory sind
-- falsch scoped sind, z. B. global statt projektbezogen
-- eine Präferenz als harte Regel formulieren
-- eine einmalige Situation als dauerhafte Regel speichern
-- sensible oder unnötig persönliche Informationen enthalten
+Remove, weaken, or correct candidates if they:
+- are not sufficiently supported
+- generalize too much
+- were only asserted by the assistant
+- are temporary but marked as permanent
+- mix multiple statements
+- are redundant to existing memory
+- are wrongly scoped, e.g., global instead of project-specific
+- formulate a preference as a hard rule
+- store a one-time situation as a permanent rule
+- contain sensitive or unnecessarily personal information
 
-Bestehender Memory:
+Existing Memory:
 <<<MEMORY
-[HIER BESTEHENDEN MEMORY EINFÜGEN]
+[INSERT EXISTING MEMORY HERE]
 MEMORY>>>
 
-Chatverlauf:
+Chat Log:
 <<<CHAT
-[HIER CHATVERLAUF EINFÜGEN]
+[INSERT CHAT LOG HERE]
 CHAT>>>
 
-Memory-Kandidaten:
+Memory Candidates:
 <<<CANDIDATES
-[HIER KANDIDATEN AUS PROMPT 1 ODER 2 EINFÜGEN]
+[INSERT CANDIDATES FROM PROMPT 1 OR 2 HERE]
 CANDIDATES>>>
 
 Output-Format:
-Gib ausschließlich validierte Zeilen in diesem Format aus:
+Output only validated lines in this format:
 
 ID|VERDICT|ACTION|TARGET|SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|REASON
 
 VERDICT:
-KEEP = übernehmen
-EDIT = übernehmen, aber korrigiert
-DROP = nicht übernehmen
-ASK = User sollte gefragt werden
-CONFLICT = Konflikt muss manuell geprüft werden
+KEEP = accept
+EDIT = accept, but corrected
+DROP = do not accept
+ASK = user should be asked
+CONFLICT = conflict must be checked manually
 
-Regeln:
-- Bei KEEP oder EDIT muss STATEMENT final verwendbar sein.
-- Bei DROP erkläre kurz in REASON, warum.
-- Bei ASK formuliere STATEMENT als konkrete Prüffrage.
-- Bei CONFLICT benenne den Konflikt knapp.
-- Gib keine allgemeine Zusammenfassung aus.
+INVALID-ALIAS WARNING:
+- Do NOT use these as SCOPE field values: GLOBAL, PROJECT, REPO, TEMPORARY.
+  Use SCOPE values only as: G, P:<name>, R:<name>, T.
+- Do NOT use: PREFERENCE. Use: PREF.
+- Do NOT use: HIGH, MEDIUM, LOW. Use: H, M, L.
+- Do NOT use: STABLE, DURABLE. Use: D, M, T.
+
+Canonical Example (valid output):
+M1|KEEP|ADD|-|P:RecipeBot|RULE|H|D|All recipes in RecipeBot must be vegetarian.|User explicitly asked to remember this for RecipeBot.|Well-supported project rule.
+M2|EDIT|ADD|-|P:RecipeBot|PREF|M|D|RecipeBot should use metric units by default.|User asked to use metric units.|Better represented as a preference than a hard rule.
+M3|DROP|IGNORE|-|T|FACT|L|T|The user is only testing today.|User said this should not be remembered permanently.|Temporary detail.
+
+Rules:
+- For KEEP or EDIT, STATEMENT must be final usable memory text.
+- For DROP, briefly explain in REASON why.
+- For ASK, formulate STATEMENT as a concrete check question.
+- For CONFLICT, briefly name the conflict.
+- Do not output a general summary.
 ```
 
 ## Prompt: Merger
 
 ```text
-Du bist ein Memory-Merger.
+You are a memory merger.
 
-Ziel:
-Erzeuge eine aktualisierte Memory-Datei aus bestehendem Memory und validierten Kandidaten.
+Goal:
+Create an updated memory file from existing memory and validated candidates.
 
-Bestehender Memory:
+Existing Memory:
 <<<MEMORY
-[HIER BESTEHENDEN MEMORY EINFÜGEN]
+[INSERT EXISTING MEMORY HERE]
 MEMORY>>>
 
-Validierte Kandidaten:
+Validated Candidates:
 <<<VALIDATED
-[HIER OUTPUT DES VALIDATORS EINFÜGEN]
+[INSERT VALIDATOR OUTPUT HERE]
 VALIDATED>>>
 
-Aufgabe:
-1. Übernimm KEEP- und EDIT-Einträge.
-2. Wende UPDATE auf bestehende Einträge an.
-3. Entferne oder markiere DEPRECATE-Einträge als veraltet.
-4. Übernimm keine DROP-Einträge.
-5. Übernimm ASK-Einträge nicht als Memory, sondern liste sie separat unter "Offene Klärungen".
-6. Führe Duplikate zusammen.
-7. Halte jeden Memory-Eintrag atomar.
-8. Erhalte Evidence, aber kürze sie auf das Nötigste.
-9. Sortiere nach Scope: GLOBAL, dann PROJECTS, dann REPOS, dann TEMPORARY, dann DEPRECATED.
-10. Nutze ein kompaktes, manuell pflegbares Format.
+Task:
+1. Take over KEEP and EDIT entries.
+2. Apply UPDATE to existing entries.
+3. Remove or mark DEPRECATE entries as obsolete.
+4. Do not take over DROP entries.
+5. Do not take over ASK entries as memory; list them separately under "Offene Klärungen".
+6. Merge duplicates.
+7. Keep each memory entry atomic.
+8. Keep evidence but shorten to the essential.
+9. Sort entries into sections in this order: ## GLOBAL, ## PROJECTS, ## REPOS, ## TEMPORARY, ## DEPRECATED.
+10. Use a compact, manually maintainable format.
 
 Output-Format:
 
@@ -249,42 +272,73 @@ SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|DEPRECATION_REASON
 ## OFFENE_KLÄRUNGEN
 QUESTION|WHY_IT_MATTERS
 
-Regeln:
-- Keine JSON-Ausgabe.
-- Keine langen Erklärungen.
-- Keine normalen Zusammenfassungen.
-- STATEMENT muss direkt als zukünftiger Kontext nutzbar sein.
+INVALID-ALIAS WARNING:
+- Do NOT use these as SCOPE field values: GLOBAL, PROJECT, REPO, TEMPORARY.
+  Use SCOPE values only as: G, P:<name>, R:<name>, T.
+- Do NOT use: PREFERENCE. Use: PREF.
+- Do NOT use: HIGH, MEDIUM, LOW. Use: H, M, L.
+- Do NOT use: STABLE, DURABLE. Use: D, M, T.
+- Note: Section headers such as ## GLOBAL and ## TEMPORARY are allowed in MEMORY_FULL.
+
+Canonical Example (valid output):
+# MEMORY_FULL
+
+## GLOBAL
+SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
+G|RULE|H|D|Answer in German by default.|User preference.
+
+## PROJECTS
+SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
+P:RecipeBot|PREF|H|D|Use metric units in recipes.|User request.
+
+## REPOS
+SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
+
+## TEMPORARY
+SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
+
+## DEPRECATED
+SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|DEPRECATION_REASON
+
+## OFFENE_KLÄRUNGEN
+QUESTION|WHY_IT_MATTERS
+
+Rules:
+- No JSON output.
+- No long explanations.
+- No normal summaries.
+- STATEMENT must be directly usable as future context.
 ```
 
 ## Prompt: Compressor
 
 ```text
-Du bist ein Memory-Kompressor für LLM-Prompts.
+You are a memory compressor for LLM prompts.
 
-Ziel:
-Erzeuge aus dem vollständigen Memory einen sehr kompakten Kontextblock, der am Anfang neuer Chats eingefügt werden kann.
+Goal:
+Create from the full memory a very compact context block that can be inserted at the beginning of new chats.
 
-Vollständiger Memory:
+Full Memory:
 <<<MEMORY_FULL
-[HIER MEMORY_FULL EINFÜGEN]
+[INSERT MEMORY_FULL HERE]
 MEMORY_FULL>>>
 
-Optionaler Zielkontext des nächsten Chats:
+Optional target context of the next chat:
 <<<NEXT_CONTEXT
-[HIER KURZ BESCHREIBEN, WORUM ES IM NÄCHSTEN CHAT GEHT; WENN UNBEKANNT, LEER LASSEN]
+[INSERT BRIEF DESCRIPTION OF WHAT THE NEXT CHAT IS ABOUT; LEAVE EMPTY IF UNKNOWN]
 NEXT_CONTEXT>>>
 
-Aufgabe:
-1. Entferne Evidence.
-2. Entferne temporäre, veraltete und irrelevante Einträge.
-3. Behalte globale High-Priority-Regeln.
-4. Behalte projektbezogene Einträge nur, wenn sie zum Zielkontext passen.
-5. Formuliere extrem kompakt.
-6. Keine vollständigen Sätze, wenn Stichpunkte reichen.
-7. Maximal 25 Zeilen.
-8. Priorisiere Regeln, die das Verhalten des Assistenten konkret ändern.
-9. Keine privaten Details ohne Nutzwert.
-10. Keine Wiederholungen.
+Task:
+1. Remove evidence.
+2. Remove temporary, deprecated, and irrelevant entries.
+3. Keep global high-priority rules.
+4. Keep project-related entries only if they fit the target context.
+5. Formulate extremely compact.
+6. No full sentences when bullet points suffice.
+7. Maximum 25 lines.
+8. Prioritize rules that concretely change assistant behavior.
+9. No private details without utility value.
+10. No repetitions.
 
 Output-Format:
 
@@ -301,16 +355,16 @@ Arbeitsweise:
 Nicht tun:
 - ...
 
-Regeln:
-- Keine Evidence.
-- Keine Meta-Erklärung.
-- Keine JSON-Ausgabe.
-- Nur den finalen Promptblock ausgeben.
+Rules:
+- No evidence.
+- No meta explanation.
+- No JSON output.
+- Output only the final prompt block.
 ```
 
-## Prompt-Versionierung
+## Prompt Versioning
 
-Prompt-Templates sollten im Code versioniert werden, z. B.:
+Prompt templates should be versioned in code, e.g.:
 
 ```text
 extractor_v1
@@ -319,4 +373,4 @@ merger_v1
 compressor_v1
 ```
 
-Jeder erzeugte Output sollte später optional speichern können, mit welcher Prompt-Version er entstanden ist. Für den MVP reicht eine sichtbare Konstante im Prompt-Template.
+Each produced output should later optionally be able to store which prompt version created it. For the MVP, a visible constant in the prompt template is sufficient.
