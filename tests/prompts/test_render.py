@@ -231,8 +231,14 @@ class TestRenderMergerPrompt:
         """Merger prompt warns against invalid aliases."""
         result = render_merger_prompt("", "validated")
         assert "INVALID-ALIAS WARNING" in result
+        assert "Do NOT use these as SCOPE field values" in result
         assert "PREFERENCE" in result
         assert "GLOBAL" in result
+
+    def test_contains_section_header_note(self) -> None:
+        """Merger prompt notes that section headers like ## GLOBAL are allowed."""
+        result = render_merger_prompt("", "validated")
+        assert "Section headers such as ## GLOBAL" in result
 
     def test_contains_memory_full_header(self) -> None:
         """Merger prompt contains # MEMORY_FULL header."""

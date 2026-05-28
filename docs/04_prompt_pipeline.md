@@ -140,7 +140,8 @@ Evaluation Criteria:
 - Include sensitive information only when it appears to be explicitly permanently relevant.
 
 INVALID-ALIAS WARNING:
-- Do NOT use: GLOBAL, PROJECT, REPO, TEMPORARY. Use: G, P:<name>, R:<name>, T.
+- Do NOT use these as SCOPE field values: GLOBAL, PROJECT, REPO, TEMPORARY.
+  Use SCOPE values only as: G, P:<name>, R:<name>, T.
 - Do NOT use: PREFERENCE. Use: PREF.
 - Do NOT use: HIGH, MEDIUM, LOW. Use: H, M, L.
 - Do NOT use: STABLE, DURABLE. Use: D, M, T.
@@ -200,7 +201,8 @@ ASK = user should be asked
 CONFLICT = conflict must be checked manually
 
 INVALID-ALIAS WARNING:
-- Do NOT use: GLOBAL, PROJECT, REPO, TEMPORARY. Use: G, P:<name>, R:<name>, T.
+- Do NOT use these as SCOPE field values: GLOBAL, PROJECT, REPO, TEMPORARY.
+  Use SCOPE values only as: G, P:<name>, R:<name>, T.
 - Do NOT use: PREFERENCE. Use: PREF.
 - Do NOT use: HIGH, MEDIUM, LOW. Use: H, M, L.
 - Do NOT use: STABLE, DURABLE. Use: D, M, T.
@@ -245,7 +247,7 @@ Task:
 6. Merge duplicates.
 7. Keep each memory entry atomic.
 8. Keep evidence but shorten to the essential.
-9. Sort by scope: GLOBAL, then PROJECTS, then REPOS, then TEMPORARY, then DEPRECATED.
+9. Sort entries into sections in this order: ## GLOBAL, ## PROJECTS, ## REPOS, ## TEMPORARY, ## DEPRECATED.
 10. Use a compact, manually maintainable format.
 
 Output-Format:
@@ -271,10 +273,12 @@ SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|DEPRECATION_REASON
 QUESTION|WHY_IT_MATTERS
 
 INVALID-ALIAS WARNING:
-- Do NOT use: GLOBAL, PROJECT, REPO, TEMPORARY. Use: G, P:<name>, R:<name>, T.
+- Do NOT use these as SCOPE field values: GLOBAL, PROJECT, REPO, TEMPORARY.
+  Use SCOPE values only as: G, P:<name>, R:<name>, T.
 - Do NOT use: PREFERENCE. Use: PREF.
 - Do NOT use: HIGH, MEDIUM, LOW. Use: H, M, L.
 - Do NOT use: STABLE, DURABLE. Use: D, M, T.
+- Note: Section headers such as ## GLOBAL and ## TEMPORARY are allowed in MEMORY_FULL.
 
 Canonical Example (valid output):
 # MEMORY_FULL
