@@ -21,6 +21,57 @@ _PLACEHOLDER_TAGS: Final[set[str]] = {"figure"}
 # Tags to completely ignore
 _IGNORE_TAGS: Final[set[str]] = {"script", "style", "nav", "header", "footer", "aside"}
 
+# Block-level tags that need separation between their content
+_BLOCK_TAGS: Final[set[str]] = {
+    "p",
+    "li",
+    "pre",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "blockquote",
+    "td",
+    "th",
+    "div",
+    "section",
+    "article",
+}
+
+# Separator to insert at start of block tags
+_BLOCK_START_SEPARATORS: Final[dict[str, str]] = {
+    "p": "\n\n",
+    "li": "\n- ",
+    "pre": "\n",
+    "h1": "\n\n",
+    "h2": "\n\n",
+    "h3": "\n\n",
+    "h4": "\n\n",
+    "h5": "\n\n",
+    "h6": "\n\n",
+    "blockquote": "\n\n",
+    "td": " | ",
+    "th": " | ",
+}
+
+# Separator to insert at end of block tags
+_BLOCK_END_SEPARATORS: Final[dict[str, str]] = {
+    "p": "\n\n",
+    "li": "",
+    "pre": "\n",
+    "h1": "\n\n",
+    "h2": "\n\n",
+    "h3": "\n\n",
+    "h4": "\n\n",
+    "h5": "\n\n",
+    "h6": "\n\n",
+    "blockquote": "\n\n",
+    "td": "",
+    "th": "",
+}
+
 
 class HtmlChatImportError(Exception):
     """Raised when HTML chat import parsing fails."""
@@ -53,6 +104,8 @@ class _ChatHtmlParser(HTMLParser):
         self._found_any_message: bool = False
         self._message_tag: str | None = None
         self._message_depth: int = 0
+        self._last_was_block_end: bool = False
+        self._pending_separator: str = ""
 
     def _is_message_tag(self, tag: str, attrs: list[tuple[str, str | None]]) -> bool:
         """Check if tag is a message container based on class attribute."""
@@ -103,8 +156,11 @@ class _ChatHtmlParser(HTMLParser):
         """Finish current message and store it."""
         if self._current_role and self._current_content:
             content = "".join(self._current_content).strip()
-            # Normalize whitespace
+            # Normalize whitespace: collapse 3+ newlines to 2, collapse spaces/tabs
             content = re.sub(r"\n\s*\n\s*\n+", "\n\n", content)
+            content = re.sub(r"[ \t]+", " ", content)
+            # Strip each line and remove blank lines at start/end
+            content = "\n".join(line.strip() for line in content.splitlines())
             content = content.strip()
             if content:
                 self.messages.append(_ChatMessage(self._current_role, content))
@@ -113,6 +169,8 @@ class _ChatHtmlParser(HTMLParser):
         self._in_message = False
         self._message_tag = None
         self._message_depth = 0
+        self._last_was_block_end = False
+        self._pending_separator = ""
 
     def _handle_img_tag(self, attrs: list[tuple[str, str | None]]) -> None:
         """Handle img tag by adding placeholder."""
@@ -136,6 +194,29 @@ class _ChatHtmlParser(HTMLParser):
         """Handle <br> tags."""
         if self._in_message:
             self._current_content.append("\n")
+
+    def _append_content(self, text: str) -> None:
+        """Append text content, applying any pending separator first."""
+        if not text:
+            return
+        if self._pending_separator:
+            sep = self._pending_separator
+            self._pending_separator = ""
+            self._current_content.append(sep)
+        self._current_content.append(text)
+        self._last_was_block_end = False
+
+    def _append_separator(self, sep: str) -> None:
+        """Mark a pending block separator to prepend to next content."""
+        if not sep:
+            return
+        if self._current_content:
+            # Content already present - add separator directly
+            self._current_content.append(sep)
+            self._last_was_block_end = True
+        else:
+            # No content yet - store as pending separator
+            self._pending_separator = sep
 
     # pylint: disable=invalid-name
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -185,6 +266,9 @@ class _ChatHtmlParser(HTMLParser):
         # Track tags inside messages for content extraction
         if self._in_message:
             self._tag_stack.append(tag_lower)
+            # Add block separator at start of block tags
+            if tag_lower in _BLOCK_START_SEPARATORS:
+                self._append_separator(_BLOCK_START_SEPARATORS[tag_lower])
 
     # pylint: disable=invalid-name
     def handle_endtag(self, tag: str) -> None:
@@ -207,8 +291,12 @@ class _ChatHtmlParser(HTMLParser):
                 self._tag_stack.pop()
             return
 
-        if self._in_message and self._tag_stack:
-            self._tag_stack.pop()
+        if self._in_message:
+            # Add block separator at end of block tags before popping
+            if tag_lower in _BLOCK_END_SEPARATORS:
+                self._append_separator(_BLOCK_END_SEPARATORS[tag_lower])
+            if self._tag_stack:
+                self._tag_stack.pop()
 
     # pylint: disable=invalid-name
     def handle_data(self, data: str) -> None:
@@ -217,10 +305,7 @@ class _ChatHtmlParser(HTMLParser):
             return
 
         if self._in_message:
-            # Only add non-whitespace or actual content
-            stripped = data.strip()
-            if stripped:
-                self._current_content.append(data)
+            self._append_content(data)
 
     # pylint: disable=invalid-name
     def handle_entityref(self, name: str) -> None:
@@ -228,7 +313,7 @@ class _ChatHtmlParser(HTMLParser):
         if self._ignore_depth > 0:
             return
         if self._in_message:
-            self._current_content.append(html.unescape(f"&{name};"))
+            self._append_content(html.unescape(f"&{name};"))
 
     # pylint: disable=invalid-name
     def handle_charref(self, name: str) -> None:
@@ -236,7 +321,7 @@ class _ChatHtmlParser(HTMLParser):
         if self._ignore_depth > 0:
             return
         if self._in_message:
-            self._current_content.append(html.unescape(f"&#{name};"))
+            self._append_content(html.unescape(f"&#{name};"))
 
     def error(self, message: str) -> None:
         """Override to suppress HTMLParseError warnings in Python 3.12+."""

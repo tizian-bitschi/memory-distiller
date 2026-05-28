@@ -143,7 +143,7 @@ class TestListsCodeReadable:
     """Test that lists and code are readable."""
 
     def test_list_items_readable(self) -> None:
-        """List items should have their text extracted."""
+        """List items should have their text extracted with separation."""
         html = (
             '<div class="message user-message"><div class="content">'
             "<ul><li>First item</li><li>Second item</li><li>Third item</li></ul>"
@@ -153,9 +153,16 @@ class TestListsCodeReadable:
         assert "First item" in result
         assert "Second item" in result
         assert "Third item" in result
+        # Verify separation - content should NOT be concatenated
+        assert "First itemSecond item" not in result
+        assert "Second itemThird item" not in result
+        # Verify list item markers are present
+        assert "- First item" in result
+        assert "- Second item" in result
+        assert "- Third item" in result
 
     def test_code_blocks_readable(self) -> None:
-        """Code blocks should have their text extracted."""
+        """Code blocks should have their text extracted with separation."""
         html = (
             '<div class="message assistant-message"><div class="content">'
             '<pre><code>def hello():\n    print("world")</code></pre>'
@@ -164,9 +171,11 @@ class TestListsCodeReadable:
         result = parse_chatgpt_html_export(html)
         assert "def hello():" in result
         assert 'print("world")' in result
+        # Verify separation within code block
+        assert "def hello():print" not in result
 
     def test_paragraphs_readable(self) -> None:
-        """Paragraphs should have their text extracted."""
+        """Paragraphs should have their text extracted with separation."""
         html = (
             '<div class="message user-message"><div class="content">'
             "<p>First paragraph</p><p>Second paragraph</p>"
@@ -175,6 +184,8 @@ class TestListsCodeReadable:
         result = parse_chatgpt_html_export(html)
         assert "First paragraph" in result
         assert "Second paragraph" in result
+        # Verify separation - paragraphs should NOT be concatenated
+        assert "First paragraphSecond paragraph" not in result
 
 
 class TestImagePlaceholder:
@@ -201,3 +212,54 @@ class TestImagePlaceholder:
         )
         result = parse_chatgpt_html_export(html)
         assert "[image]" in result
+
+
+class TestBlockSeparation:
+    """Test that block elements produce readable separation."""
+
+    def test_paragraphs_are_separated(self) -> None:
+        html = (
+            '<div class="message user-message"><div class="content">'
+            "<p>First paragraph</p><p>Second paragraph</p>"
+            "</div></div>"
+        )
+        result = parse_chatgpt_html_export(html)
+        assert "First paragraphSecond paragraph" not in result
+        assert "First paragraph" in result
+        assert "Second paragraph" in result
+
+    def test_list_items_are_readable(self) -> None:
+        html = (
+            '<div class="message user-message"><div class="content">'
+            "<ul><li>First item</li><li>Second item</li><li>Third item</li></ul>"
+            "</div></div>"
+        )
+        result = parse_chatgpt_html_export(html)
+        assert "First itemSecond item" not in result
+        assert "- First item" in result
+        assert "- Second item" in result
+        assert "- Third item" in result
+
+    def test_code_block_is_readable(self) -> None:
+        html = (
+            '<div class="message assistant-message"><div class="content">'
+            '<pre><code>def hello():\n    print("world")</code></pre>'
+            "</div></div>"
+        )
+        result = parse_chatgpt_html_export(html)
+        assert "def hello():" in result
+        assert 'print("world")' in result
+        assert "def hello():print" not in result
+
+    def test_mixed_content_is_separated(self) -> None:
+        html = (
+            '<div class="message user-message"><div class="content">'
+            '<p>Before</p><pre><code>print("hi")</code></pre><p>After</p>'
+            "</div></div>"
+        )
+        result = parse_chatgpt_html_export(html)
+        assert "Beforeprint" not in result
+        assert "printAfter" not in result
+        assert "Before" in result
+        assert 'print("hi")' in result
+        assert "After" in result
