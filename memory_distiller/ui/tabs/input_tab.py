@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import streamlit as st
 
-from memory_distiller.io.file_import import decode_uploaded_text, validate_text_file_extension
+from memory_distiller.io.file_import import (
+    decode_uploaded_text,
+    read_chat_log,
+    validate_chat_log_extension,
+    validate_text_file_extension,
+)
+from memory_distiller.io.html_chat_import import HtmlChatImportError
 from memory_distiller.ui.components import estimate_tokens
 from memory_distiller.ui.state import (
     CHAT_LOG,
@@ -20,25 +26,25 @@ def render_input_tab() -> None:
     st.subheader("Chat Log")
     chat_log_file = st.file_uploader(
         "Upload chat log (optional)",
-        type=["txt", "md", "markdown"],
+        type=["txt", "md", "markdown", "html", "htm"],
         key="chat_log_upload",
     )
     if chat_log_file is not None:
         last = st.session_state.get(LAST_CHAT_LOG_UPLOAD_NAME, "")
         if chat_log_file.name != last:
-            if not validate_text_file_extension(chat_log_file.name):
+            if not validate_chat_log_extension(chat_log_file.name):
                 st.error(
                     f"Invalid file extension for {chat_log_file.name!r}. "
-                    "Allowed: .txt, .md, .markdown"
+                    "Allowed: .txt, .md, .markdown, .html, .htm"
                 )
                 st.session_state[LAST_CHAT_LOG_UPLOAD_NAME] = chat_log_file.name
             else:
                 try:
-                    text = decode_uploaded_text(chat_log_file.read(), filename=chat_log_file.name)
+                    text = read_chat_log(chat_log_file.read(), filename=chat_log_file.name)
                     st.session_state[CHAT_LOG] = text
                     st.session_state[LAST_CHAT_LOG_UPLOAD_NAME] = chat_log_file.name
                     st.rerun()
-                except ValueError as e:
+                except (ValueError, HtmlChatImportError) as e:
                     st.error(str(e))
                     st.session_state[LAST_CHAT_LOG_UPLOAD_NAME] = chat_log_file.name
     st.caption("Uploaded files are read into the current session only and are not written to disk.")

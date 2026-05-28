@@ -53,3 +53,37 @@ class TestInputTabUsesExplicitWidgetKeys:
         assert widget_idx is not None
         for line in lines[widget_idx : widget_idx + 5]:
             assert "st.session_state[NEXT_CONTEXT] =" not in line
+
+
+class TestChatLogHtmlSupport:
+    """Tests for Issue #29 - ChatGPT HTML chat export support."""
+
+    def test_chat_log_file_uploader_accepts_html(self):
+        """Chat log file_uploader type includes 'html'."""
+        source = inspect.getsource(render_input_tab)
+        # Find the chat_log_file uploader block
+        assert 'type=["txt", "md", "markdown", "html", "htm"]' in source
+
+    def test_chat_log_uses_validate_chat_log_extension(self):
+        """Chat log uses validate_chat_log_extension, not validate_text_file_extension."""
+        source = inspect.getsource(render_input_tab)
+        # Should use validate_chat_log_extension
+        assert "validate_chat_log_extension" in source
+        # The chat log block should NOT use validate_text_file_extension
+        lines = source.splitlines()
+        chat_log_block_idx = None
+        for i, line in enumerate(lines):
+            if 'key="chat_log_upload"' in line:
+                chat_log_block_idx = i
+                break
+        assert chat_log_block_idx is not None
+        # Check within the chat log block (next ~20 lines after file_uploader)
+        chat_log_block = lines[chat_log_block_idx : chat_log_block_idx + 20]
+        block_source = "\n".join(chat_log_block)
+        assert "validate_text_file_extension" not in block_source
+
+    def test_chat_log_error_message_mentions_html_htm(self):
+        """Error message for invalid chat log extension mentions html and htm."""
+        source = inspect.getsource(render_input_tab)
+        # Should mention html and htm in the allowed extensions error
+        assert ".html, .htm" in source

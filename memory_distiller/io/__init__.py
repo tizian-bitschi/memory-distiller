@@ -19,8 +19,14 @@ from memory_distiller.io.file_export import (
 )
 from memory_distiller.io.file_import import (
     decode_uploaded_text,
+    read_chat_log,
     read_uploaded_text,
+    validate_chat_log_extension,
     validate_text_file_extension,
+)
+from memory_distiller.io.html_chat_import import (
+    HtmlChatImportError,
+    parse_chatgpt_html_export,
 )
 from memory_distiller.io.memory_parser import parse_memory_document, validate_scope
 from memory_distiller.io.memory_writer import write_memory_document
@@ -29,17 +35,21 @@ __all__ = [
     "ExportArtifact",
     "build_text_download_payload",
     "decode_uploaded_text",
+    "HtmlChatImportError",
     "normalize_candidate_lines",
     "normalize_memory_document",
     "parse_candidates",
+    "parse_chatgpt_html_export",
     "parse_memory_document",
     "parse_validated_candidates",
+    "read_chat_log",
     "read_uploaded_text",
     "safe_export_filename",
     "suggest_priority_alias",
     "suggest_scope_alias",
     "suggest_stability_alias",
     "suggest_type_alias",
+    "validate_chat_log_extension",
     "validate_scope",
     "validate_text_file_extension",
     "write_memory_document",
