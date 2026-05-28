@@ -127,6 +127,44 @@ Guidance for TYPE classification:
 - Use TYPE = PREF for preferences, defaults, stylistic tendencies, and soft conventions.
 - Use TYPE = RULE only for hard constraints, explicit must/never/always behavior, safety constraints, or explicit technical/storage requirements.
 
+Temporary-Detail Boundary Guidance:
+- A user sentence like "do not remember this" may apply only to the nearest or explicitly referenced temporary detail.
+- Do not retroactively drop earlier explicit reusable project instructions unless the user clearly says those instructions should not be remembered.
+- If a chat contains both reusable instructions and a later temporary-test statement, keep the reusable instructions and drop only the temporary test detail.
+
+Example input:
+User: For RecipeBot, use friendly concise recipe text. Today I am only testing the memory pipeline; do not remember that.
+
+Expected behavior:
+- KEEP the RecipeBot style instruction.
+- DROP the temporary pipeline-test fact.
+
+Contradictory Verdict/Action Guidance:
+- Do not emit KEEP|IGNORE.
+- Do not emit EDIT|IGNORE.
+- For ACTION=IGNORE, use VERDICT=DROP unless the candidate must become ASK or CONFLICT.
+- KEEP and EDIT are only for entries that will be carried forward as memory.
+- DROP is the normal verdict for candidates that should not be carried forward.
+
+Invalid:
+M8|KEEP|IGNORE|-|T|FACT|L|T|The user is only testing today.|User said not to remember this.|Temporary detail.
+
+Valid:
+M8|DROP|IGNORE|-|T|FACT|L|T|The user is only testing today.|User said not to remember this.|Temporary detail.
+
+Existing-Memory Update Guidance:
+- If a candidate refines or concretizes an existing memory entry, prefer EDIT|UPDATE over adding a redundant new memory entry.
+- A storage preference like "file-based storage" refined into "Markdown files in repo, no DB for MVP" should become an update/decision rather than a duplicate preference.
+
+Existing memory:
+P:RecipeBot|PREF|M|D|RecipeBot should prefer simple file-based storage over database complexity.|Earlier project direction.
+
+Candidate:
+M6|ADD|-|P:RecipeBot|PREF|M|D|Store recipes as Markdown files in the repository.|User asked for Markdown files and no database for MVP.|Storage preference.
+
+Expected:
+M6|EDIT|UPDATE|RecipeBot should prefer simple file-based storage over database complexity.|P:RecipeBot|DECISION|H|M|RecipeBot should store recipes as Markdown files in the repository for the MVP and avoid a database for now.|User asked for Markdown files and said no database is needed for the MVP.|Refines existing storage preference into a concrete MVP decision.
+
 Rules:
 - For KEEP or EDIT, STATEMENT must be final usable memory text.
 - For DROP, briefly explain in REASON why.

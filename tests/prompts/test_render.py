@@ -213,6 +213,73 @@ class TestRenderValidatorPrompt:
         result = render_validator_prompt("", "chat", "candidates")
         assert "M1|KEEP|ADD|-|P:RecipeBot|RULE|H|D" in result
 
+    # Part A – Temporary-detail boundary guidance
+    def test_contains_temporary_boundary_do_not_remember_this(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "do not remember this" in result.lower()
+
+    def test_contains_temporary_boundary_nearest_detail(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "nearest or explicitly referenced temporary detail" in result
+
+    def test_contains_temporary_boundary_no_retroactive_drop(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "Do not retroactively drop earlier explicit reusable project instructions" in result
+
+    def test_contains_temporary_boundary_keep_recipebot_style(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "KEEP the RecipeBot style instruction" in result
+
+    def test_contains_temporary_boundary_drop_pipeline_test(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "DROP the temporary pipeline-test fact" in result
+
+    # Part B – Contradictory verdict/action guidance
+    def test_contains_contradictory_do_not_emit_keep_ignore(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "Do not emit KEEP|IGNORE" in result
+
+    def test_contains_contradictory_do_not_emit_edit_ignore(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "Do not emit EDIT|IGNORE" in result
+
+    def test_contains_contradictory_action_ignore_use_drop(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "For ACTION=IGNORE, use VERDICT=DROP" in result
+
+    def test_contains_contradictory_invalid_keep_ignore_example(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "M8|KEEP|IGNORE" in result
+
+    def test_contains_contradictory_valid_drop_ignore_example(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "M8|DROP|IGNORE" in result
+
+    # Part C – Existing-memory update guidance
+    def test_contains_existing_memory_refines_concretizes(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "refines or concretizes an existing memory entry" in result
+
+    def test_contains_existing_memory_prefer_edit_update(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "prefer EDIT|UPDATE" in result
+
+    def test_contains_existing_memory_markdown_files_repo(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "Markdown files in the repository" in result
+
+    def test_contains_existing_memory_avoid_database_now(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        assert "avoid a database for now" in result
+
+    def test_contains_existing_memory_update_example(self) -> None:
+        result = render_validator_prompt("", "chat", "candidates")
+        expected = (
+            "M6|EDIT|UPDATE|RecipeBot should prefer simple file-based storage "
+            "over database complexity.|P:RecipeBot|DECISION|H|M"
+        )
+        assert expected in result
+
 
 class TestRenderMergerPrompt:
     """Tests for render_merger_prompt."""
