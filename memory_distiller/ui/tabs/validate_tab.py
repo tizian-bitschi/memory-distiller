@@ -11,7 +11,9 @@ from memory_distiller.io.candidate_parser import parse_validated_candidates
 from memory_distiller.io.enum_aliases import normalize_candidate_lines
 from memory_distiller.llm.errors import MissingApiKeyError
 from memory_distiller.ui.components import (
+    estimate_tokens,
     render_error,
+    render_token_summary,
     render_usage_summary,
     render_validated_candidate_table,
 )
@@ -22,6 +24,7 @@ from memory_distiller.ui.state import (
     EXISTING_MEMORY,
     MODE,
     VALIDATE_COST,
+    VALIDATE_ESTIMATED_REQUEST_TOKENS,
     VALIDATE_MODEL,
     VALIDATE_USAGE,
     VALIDATED_CANDIDATES_RAW,
@@ -65,6 +68,13 @@ def _render_validate_prompt_only() -> None:
         st.error(str(e))
         return
 
+    estimated_request = estimate_tokens(service.SYSTEM_PROMPT) + estimate_tokens(prompt)
+    st.session_state[VALIDATE_ESTIMATED_REQUEST_TOKENS] = estimated_request
+    render_token_summary(
+        "Validation",
+        system_prompt=service.SYSTEM_PROMPT,
+        rendered_prompt=prompt,
+    )
     st.code(prompt, language="text")
 
     st.subheader("LLM Response")
@@ -73,6 +83,14 @@ def _render_validate_prompt_only() -> None:
         height=300,
         key="validate_llm_response",
     )
+
+    if llm_response:
+        render_token_summary(
+            "Validation",
+            system_prompt=ValidationService.SYSTEM_PROMPT,
+            rendered_prompt=prompt,
+            raw_response=llm_response,
+        )
 
     if st.button("Repair common enum aliases", key="validate_repair_btn"):
         if not llm_response:
@@ -121,6 +139,24 @@ def _render_validate_api() -> None:
 
     st.subheader("Run Validation")
 
+    service = ValidationService()
+    try:
+        prompt = service.render_prompt(
+            existing_memory=existing_memory,
+            chat_log=chat_log,
+            candidates=candidates_raw,
+        )
+        estimated_request = estimate_tokens(service.SYSTEM_PROMPT) + estimate_tokens(prompt)
+        st.session_state[VALIDATE_ESTIMATED_REQUEST_TOKENS] = estimated_request
+        render_token_summary(
+            "Validation",
+            system_prompt=service.SYSTEM_PROMPT,
+            rendered_prompt=prompt,
+        )
+    except ValueError as e:
+        st.error(str(e))
+        return
+
     if st.button("Run validation", key="validate_run_btn"):
         service = ValidationService()
         try:
@@ -155,13 +191,14 @@ def _render_validate_api() -> None:
     if raw_response or validated:
         st.subheader("Rendered Prompt")
         service = ValidationService()
+        display_prompt: str | None = None
         try:
-            prompt = service.render_prompt(
+            display_prompt = service.render_prompt(
                 existing_memory=existing_memory,
                 chat_log=chat_log,
                 candidates=candidates_raw,
             )
-            st.code(prompt, language="text")
+            st.code(display_prompt, language="text")
         except ValueError:
             pass
 
@@ -178,5 +215,12 @@ def _render_validate_api() -> None:
         usage = st.session_state.get(VALIDATE_USAGE)
         cost = st.session_state.get(VALIDATE_COST)
         model = st.session_state.get(VALIDATE_MODEL)
+        render_token_summary(
+            "Validation",
+            system_prompt=ValidationService.SYSTEM_PROMPT,
+            rendered_prompt=prompt,
+            raw_response=raw_response if raw_response else None,
+            provider_usage=usage,
+        )
         if usage is not None or cost is not None:
             render_usage_summary("Validation", usage, cost, model)

@@ -11,8 +11,10 @@ from memory_distiller.io.candidate_parser import parse_candidates
 from memory_distiller.io.enum_aliases import normalize_candidate_lines
 from memory_distiller.llm.errors import MissingApiKeyError
 from memory_distiller.ui.components import (
+    estimate_tokens,
     render_candidate_table,
     render_error,
+    render_token_summary,
     render_usage_summary,
 )
 from memory_distiller.ui.llm_factory import create_deepseek_client_from_session_state
@@ -21,6 +23,7 @@ from memory_distiller.ui.state import (
     CHAT_LOG,
     EXISTING_MEMORY,
     EXTRACT_COST,
+    EXTRACT_ESTIMATED_REQUEST_TOKENS,
     EXTRACT_MODEL,
     EXTRACT_USAGE,
     EXTRACTION_RESULT,
@@ -55,6 +58,13 @@ def _render_extract_prompt_only() -> None:
         st.error(str(e))
         return
 
+    estimated_request = estimate_tokens(service.SYSTEM_PROMPT) + estimate_tokens(prompt)
+    st.session_state[EXTRACT_ESTIMATED_REQUEST_TOKENS] = estimated_request
+    render_token_summary(
+        "Extraction",
+        system_prompt=service.SYSTEM_PROMPT,
+        rendered_prompt=prompt,
+    )
     st.code(prompt, language="text")
 
     st.subheader("LLM Response")
@@ -63,6 +73,14 @@ def _render_extract_prompt_only() -> None:
         height=300,
         key="extract_llm_response",
     )
+
+    if llm_response:
+        render_token_summary(
+            "Extraction",
+            system_prompt=ExtractionService.SYSTEM_PROMPT,
+            rendered_prompt=prompt,
+            raw_response=llm_response,
+        )
 
     if st.button("Repair common enum aliases", key="extract_repair_btn"):
         if not llm_response:
@@ -106,6 +124,20 @@ def _render_extract_api() -> None:
 
     st.subheader("Run Extraction")
 
+    service = ExtractionService()
+    try:
+        prompt = service.render_prompt(existing_memory=existing_memory, chat_log=chat_log)
+        estimated_request = estimate_tokens(service.SYSTEM_PROMPT) + estimate_tokens(prompt)
+        st.session_state[EXTRACT_ESTIMATED_REQUEST_TOKENS] = estimated_request
+        render_token_summary(
+            "Extraction",
+            system_prompt=service.SYSTEM_PROMPT,
+            rendered_prompt=prompt,
+        )
+    except ValueError as e:
+        st.error(str(e))
+        return
+
     if st.button("Run extraction", key="extract_run_btn"):
         service = ExtractionService()
         try:
@@ -139,9 +171,12 @@ def _render_extract_api() -> None:
     if raw_response or candidates:
         st.subheader("Rendered Prompt")
         service = ExtractionService()
+        display_prompt: str | None = None
         try:
-            prompt = service.render_prompt(existing_memory=existing_memory, chat_log=chat_log)
-            st.code(prompt, language="text")
+            display_prompt = service.render_prompt(
+                existing_memory=existing_memory, chat_log=chat_log
+            )
+            st.code(display_prompt, language="text")
         except ValueError:
             pass
 
@@ -158,5 +193,12 @@ def _render_extract_api() -> None:
         usage = st.session_state.get(EXTRACT_USAGE)
         cost = st.session_state.get(EXTRACT_COST)
         model = st.session_state.get(EXTRACT_MODEL)
+        render_token_summary(
+            "Extraction",
+            system_prompt=ExtractionService.SYSTEM_PROMPT,
+            rendered_prompt=prompt,
+            raw_response=raw_response if raw_response else None,
+            provider_usage=usage,
+        )
         if usage is not None or cost is not None:
             render_usage_summary("Extraction", usage, cost, model)

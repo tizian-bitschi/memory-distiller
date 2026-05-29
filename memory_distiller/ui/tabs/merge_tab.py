@@ -10,12 +10,19 @@ from memory_distiller.domain.memory_entry import MemoryDocument
 from memory_distiller.io.enum_aliases import normalize_memory_document
 from memory_distiller.io.memory_parser import parse_memory_document
 from memory_distiller.llm.errors import MissingApiKeyError
-from memory_distiller.ui.components import render_error, render_memory_summary, render_usage_summary
+from memory_distiller.ui.components import (
+    estimate_tokens,
+    render_error,
+    render_memory_summary,
+    render_token_summary,
+    render_usage_summary,
+)
 from memory_distiller.ui.llm_factory import create_deepseek_client_from_session_state
 from memory_distiller.ui.state import (
     EXISTING_MEMORY,
     MEMORY_FULL_RAW,
     MERGE_COST,
+    MERGE_ESTIMATED_REQUEST_TOKENS,
     MERGE_MODEL,
     MERGE_RESULT,
     MERGE_USAGE,
@@ -54,6 +61,13 @@ def _render_merge_prompt_only() -> None:
         st.error(str(e))
         return
 
+    estimated_request = estimate_tokens(service.SYSTEM_PROMPT) + estimate_tokens(prompt)
+    st.session_state[MERGE_ESTIMATED_REQUEST_TOKENS] = estimated_request
+    render_token_summary(
+        "Merge",
+        system_prompt=MergeService.SYSTEM_PROMPT,
+        rendered_prompt=prompt,
+    )
     st.code(prompt, language="text")
 
     st.subheader("LLM Response")
@@ -62,6 +76,14 @@ def _render_merge_prompt_only() -> None:
         height=300,
         key="merge_llm_response",
     )
+
+    if llm_response:
+        render_token_summary(
+            "Merge",
+            system_prompt=MergeService.SYSTEM_PROMPT,
+            rendered_prompt=prompt,
+            raw_response=llm_response,
+        )
 
     if st.button("Repair common enum aliases", key="merge_repair_btn"):
         if not llm_response:
@@ -106,6 +128,23 @@ def _render_merge_api() -> None:
         return
 
     st.subheader("Run Merge")
+
+    service = MergeService()
+    try:
+        prompt = service.render_prompt(
+            existing_memory=existing_memory,
+            validated_candidates=validated_raw,
+        )
+        estimated_request = estimate_tokens(service.SYSTEM_PROMPT) + estimate_tokens(prompt)
+        st.session_state[MERGE_ESTIMATED_REQUEST_TOKENS] = estimated_request
+        render_token_summary(
+            "Merge",
+            system_prompt=MergeService.SYSTEM_PROMPT,
+            rendered_prompt=prompt,
+        )
+    except ValueError as e:
+        st.error(str(e))
+        return
 
     if st.button("Run merge", key="merge_run_btn"):
         service = MergeService()
@@ -161,5 +200,12 @@ def _render_merge_api() -> None:
         usage = st.session_state.get(MERGE_USAGE)
         cost = st.session_state.get(MERGE_COST)
         model = st.session_state.get(MERGE_MODEL)
+        render_token_summary(
+            "Merge",
+            system_prompt=MergeService.SYSTEM_PROMPT,
+            rendered_prompt=prompt,
+            raw_response=raw_response if raw_response else None,
+            provider_usage=usage,
+        )
         if usage is not None or cost is not None:
             render_usage_summary("Merge", usage, cost, model)

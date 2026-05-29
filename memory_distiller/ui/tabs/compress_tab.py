@@ -6,10 +6,16 @@ import streamlit as st
 
 from memory_distiller.application.compression_service import CompressionService
 from memory_distiller.llm.errors import MissingApiKeyError
-from memory_distiller.ui.components import render_error, render_usage_summary
+from memory_distiller.ui.components import (
+    estimate_tokens,
+    render_error,
+    render_token_summary,
+    render_usage_summary,
+)
 from memory_distiller.ui.llm_factory import create_deepseek_client_from_session_state
 from memory_distiller.ui.state import (
     COMPRESS_COST,
+    COMPRESS_ESTIMATED_REQUEST_TOKENS,
     COMPRESS_MODEL,
     COMPRESS_USAGE,
     COMPRESSION_RESULT,
@@ -65,6 +71,13 @@ def _render_compress_prompt_only() -> None:
         st.error(str(e))
         return
 
+    estimated_request = estimate_tokens(service.SYSTEM_PROMPT) + estimate_tokens(prompt)
+    st.session_state[COMPRESS_ESTIMATED_REQUEST_TOKENS] = estimated_request
+    render_token_summary(
+        "Compression",
+        system_prompt=CompressionService.SYSTEM_PROMPT,
+        rendered_prompt=prompt,
+    )
     st.code(prompt, language="text")
 
     st.divider()
@@ -77,6 +90,14 @@ def _render_compress_prompt_only() -> None:
         height=200,
         key=response_key,
     )
+
+    if response_content:
+        render_token_summary(
+            "Compression",
+            system_prompt=CompressionService.SYSTEM_PROMPT,
+            rendered_prompt=prompt,
+            raw_response=response_content,
+        )
 
     if st.button("Save Memory Prompt", key="compress_prompt_only_save_btn"):
         raw_content = st.session_state.get(response_key, "")
@@ -95,6 +116,21 @@ def _render_compress_api() -> None:
         return
 
     st.subheader("Run Compression")
+
+    service = CompressionService()
+    next_context = st.session_state.get(NEXT_CONTEXT, "")
+    try:
+        prompt = service.render_prompt(memory_full=memory_full_raw, next_context=next_context)
+        estimated_request = estimate_tokens(service.SYSTEM_PROMPT) + estimate_tokens(prompt)
+        st.session_state[COMPRESS_ESTIMATED_REQUEST_TOKENS] = estimated_request
+        render_token_summary(
+            "Compression",
+            system_prompt=CompressionService.SYSTEM_PROMPT,
+            rendered_prompt=prompt,
+        )
+    except ValueError as e:
+        st.error(str(e))
+        return
 
     if st.button("Run compression", key="compress_run_btn"):
         service = CompressionService()
@@ -147,5 +183,12 @@ def _render_compress_api() -> None:
         usage = st.session_state.get(COMPRESS_USAGE)
         cost = st.session_state.get(COMPRESS_COST)
         model = st.session_state.get(COMPRESS_MODEL)
+        render_token_summary(
+            "Compression",
+            system_prompt=CompressionService.SYSTEM_PROMPT,
+            rendered_prompt=prompt,
+            raw_response=memory_prompt if memory_prompt else None,
+            provider_usage=usage,
+        )
         if usage is not None or cost is not None:
             render_usage_summary("Compression", usage, cost, model)

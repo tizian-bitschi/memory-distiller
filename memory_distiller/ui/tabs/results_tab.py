@@ -10,19 +10,24 @@ from memory_distiller.ui.components import (
     aggregate_cost,
     aggregate_usage,
     format_cost,
+    format_token_count,
     render_usage_summary,
 )
 from memory_distiller.ui.state import (
     CANDIDATES_RAW,
     COMPRESS_COST,
+    COMPRESS_ESTIMATED_REQUEST_TOKENS,
     COMPRESS_USAGE,
     EXTRACT_COST,
+    EXTRACT_ESTIMATED_REQUEST_TOKENS,
     EXTRACT_USAGE,
     MEMORY_FULL_RAW,
     MEMORY_PROMPT_RAW,
     MERGE_COST,
+    MERGE_ESTIMATED_REQUEST_TOKENS,
     MERGE_USAGE,
     VALIDATE_COST,
+    VALIDATE_ESTIMATED_REQUEST_TOKENS,
     VALIDATE_USAGE,
     VALIDATED_CANDIDATES_RAW,
 )
@@ -86,6 +91,31 @@ def render_results_tab() -> None:
         )
     else:
         st.caption("No content available for download.")
+
+    # Prompt size summary
+    extract_tokens = st.session_state.get(EXTRACT_ESTIMATED_REQUEST_TOKENS)
+    validate_tokens = st.session_state.get(VALIDATE_ESTIMATED_REQUEST_TOKENS)
+    merge_tokens = st.session_state.get(MERGE_ESTIMATED_REQUEST_TOKENS)
+    compress_tokens = st.session_state.get(COMPRESS_ESTIMATED_REQUEST_TOKENS)
+
+    if (
+        extract_tokens is not None
+        or validate_tokens is not None
+        or merge_tokens is not None
+        or compress_tokens is not None
+    ):
+        st.subheader("Prompt Size Summary")
+        cols = st.columns(4)
+        with cols[0]:
+            st.metric("Extract", format_token_count(extract_tokens))
+        with cols[1]:
+            st.metric("Validate", format_token_count(validate_tokens))
+        with cols[2]:
+            st.metric("Merge", format_token_count(merge_tokens))
+        with cols[3]:
+            st.metric("Compress", format_token_count(compress_tokens))
+    else:
+        st.caption("No prompt size estimates available. Run pipeline steps to see estimates.")
 
     # Usage and cost summary
     usages: list[LlmUsage] = []

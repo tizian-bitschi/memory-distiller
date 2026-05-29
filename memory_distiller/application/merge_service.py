@@ -7,9 +7,13 @@ from memory_distiller.io.memory_parser import parse_memory_document
 from memory_distiller.llm.base import LlmClient
 from memory_distiller.prompts.render import render_merger_prompt
 
+DEFAULT_SYSTEM_PROMPT: str = "Du bist ein Memory-Merger."
+
 
 class MergeService:
     """Service for merging validated candidates into a memory document."""
+
+    SYSTEM_PROMPT: str = DEFAULT_SYSTEM_PROMPT
 
     def render_prompt(self, *, existing_memory: str, validated_candidates: str) -> str:
         """Render merger prompt.
@@ -32,7 +36,7 @@ class MergeService:
         existing_memory: str,
         validated_candidates: str,
         llm_client: LlmClient,
-        system_prompt: str = "Du bist ein Memory-Merger.",
+        system_prompt: str = SYSTEM_PROMPT,
     ) -> MergeRunResult:
         """Run merge: render prompt, call LLM, parse memory document.
 
