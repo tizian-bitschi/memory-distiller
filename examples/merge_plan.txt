@@ -1,0 +1,8 @@
+M1|APPLY_ADD|-|G|PREF|H|D|Answer in German.|RecipeBot chat 2026-05-27|Valid global preference
+M2|APPLY_ADD|-|P:RecipeBot|RULE|H|D|Keep all recipes vegetarian.|RecipeBot chat 2026-05-27|Valid project rule
+M3|APPLY_ADD|-|P:RecipeBot|PREF|H|D|Use metric units for measurements.|RecipeBot chat 2026-05-27|Valid project preference
+M4|APPLY_ADD|-|P:RecipeBot|DECISION|H|D|Use Streamlit for the UI.|RecipeBot chat 2026-05-27|Valid confirmed decision
+M5|APPLY_ADD|-|P:RecipeBot|AVOID|H|D|Flag recipes containing peanuts clearly.|RecipeBot chat 2026-05-27|Valid safety rule
+M6|APPLY_ADD|-|P:RecipeBot|DECISION|H|D|Store recipes as Markdown files in the project repository.|RecipeBot chat 2026-05-27|Clarified storage location
+M7|SKIP_DROP|-|P:RecipeBot|PREF|L|T|Prefer dark mode UI.|Assistant suggested, user deferred|Not explicitly accepted, too tentative
+M8|SKIP_DROP|-|T|TASK|H|T|Complete basic features by next Friday.|Temporary deadline|Temporary constraint, not permanent memory

@@ -85,8 +85,7 @@ class TestMergeServiceUsage:
         usage = LlmUsage(prompt_tokens=200, completion_tokens=300)
         client = MockClient(
             response=(
-                "# GLOBAL\n- test\n# PROJECT\n\n# REPO\n\n# TEMPORARY\n\n"
-                "# DEPRECATED\n\n# OPEN_QUESTIONS\n"
+                "M1|APPLY_ADD|-|G|RULE|H|D|Prefer critical feedback.|2026-05-27 Evidence|New rule."
             ),
             usage=usage,
         )

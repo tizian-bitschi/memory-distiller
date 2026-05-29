@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from memory_distiller.application.merge_applier import apply_merge_plan
 from memory_distiller.application.models import MergeRunResult
 from memory_distiller.io.memory_parser import parse_memory_document
+from memory_distiller.io.memory_renderer import render_memory_document
+from memory_distiller.io.merge_plan_parser import parse_merge_plan
 from memory_distiller.llm.base import LlmClient
 from memory_distiller.prompts.render import render_merger_prompt
 
@@ -38,7 +41,16 @@ class MergeService:
         llm_client: LlmClient,
         system_prompt: str = SYSTEM_PROMPT,
     ) -> MergeRunResult:
-        """Run merge: render prompt, call LLM, parse memory document.
+        """Run merge: render prompt, call LLM, parse merge plan, apply, render, validate.
+
+        Flow:
+        1. Render prompt
+        2. Call LLM
+        3. Parse response with parse_merge_plan()
+        4. Apply plan with apply_merge_plan()
+        5. Render with render_memory_document()
+        6. Validate by parsing rendered output with parse_memory_document()
+        7. Return MergeRunResult with all fields
 
         Args:
             existing_memory: Existing memory content.
@@ -47,11 +59,11 @@ class MergeService:
             system_prompt: System prompt for the LLM.
 
         Returns:
-            MergeRunResult with prompt, raw_response, and memory_document.
+            MergeRunResult with prompt, raw_response, memory_full_raw, and memory_document.
 
         Raises:
             ValueError: If validated_candidates is missing or None.
-            ParseErrorCollection: If LLM response cannot be parsed.
+            ParseErrorCollection: If LLM response cannot be parsed as merge plan.
         """
         prompt = render_merger_prompt(existing_memory, validated_candidates)
         if hasattr(llm_client, "complete_with_usage"):
@@ -67,10 +79,23 @@ class MergeService:
             usage = None
             cost_estimate = None
             model = None
-        memory_document = parse_memory_document(raw_response)
+
+        # Parse LLM response as merge plan
+        plan = parse_merge_plan(raw_response)
+
+        # Apply plan to existing memory
+        memory_document = apply_merge_plan(existing_memory, plan)
+
+        # Render memory document deterministically
+        memory_full_raw = render_memory_document(memory_document)
+
+        # Validate by parsing the rendered output
+        parse_memory_document(memory_full_raw)
+
         return MergeRunResult(
             prompt=prompt,
             raw_response=raw_response,
+            memory_full_raw=memory_full_raw,
             memory_document=memory_document,
             usage=usage,
             cost_estimate=cost_estimate,

@@ -28,7 +28,7 @@ class TestMockPipeline:
         chat_log = _load_example("synthetic_chat_log.md")
         extractor_response = _load_example("extractor_candidates.txt")
         validator_response = _load_example("validated_candidates.txt")
-        merger_response = _load_example("memory_full_after.md")
+        merger_response = _load_example("merge_plan.txt")
         compressor_response = _load_example("memory_prompt.md")
 
         # Act - Extract
@@ -83,7 +83,7 @@ class TestMockPipeline:
         # Act - Compress
         compressor = MockClient(response=compressor_response)
         compression_result = CompressionService().run(
-            memory_full=merge_result.raw_response,
+            memory_full=merge_result.memory_full_raw,
             llm_client=compressor,
         )
 

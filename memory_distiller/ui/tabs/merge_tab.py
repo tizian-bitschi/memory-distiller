@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import streamlit as st
 
+from memory_distiller.application.merge_applier import apply_merge_plan
 from memory_distiller.application.merge_service import MergeService
 from memory_distiller.domain.errors import ParseErrorCollection
 from memory_distiller.domain.memory_entry import MemoryDocument
-from memory_distiller.io.enum_aliases import normalize_memory_document
 from memory_distiller.io.memory_parser import parse_memory_document
+from memory_distiller.io.memory_renderer import render_memory_document
+from memory_distiller.io.merge_plan_parser import parse_merge_plan
 from memory_distiller.llm.errors import MissingApiKeyError
 from memory_distiller.ui.components import (
     estimate_tokens,
@@ -24,6 +26,7 @@ from memory_distiller.ui.state import (
     MERGE_COST,
     MERGE_ESTIMATED_REQUEST_TOKENS,
     MERGE_MODEL,
+    MERGE_PLAN_RAW,
     MERGE_RESULT,
     MERGE_USAGE,
     MODE,
@@ -72,7 +75,7 @@ def _render_merge_prompt_only() -> None:
 
     st.subheader("LLM Response")
     llm_response = st.text_area(
-        "Paste the LLM response here",
+        "Merge Plan Response",
         height=300,
         key="merge_llm_response",
     )
@@ -85,37 +88,44 @@ def _render_merge_prompt_only() -> None:
             raw_response=llm_response,
         )
 
-    if st.button("Repair common enum aliases", key="merge_repair_btn"):
+    if st.button("Apply Merge Plan", key="merge_apply_btn"):
         if not llm_response:
-            st.warning("Please paste an LLM response first.")
-        else:
-            repaired, changes = normalize_memory_document(llm_response)
-            st.session_state["merge_llm_response"] = repaired
-            st.session_state["merge_repair_changes"] = changes
-            st.rerun()
-
-    changes = st.session_state.get("merge_repair_changes", [])
-    if changes:
-        st.subheader("Repairs Applied")
-        for change in changes:
-            st.write(f"- {change}")
-    elif "merge_repair_changes" in st.session_state:
-        st.info("No changes needed.")
-
-    if st.button("Parse Memory Document", key="merge_parse_btn"):
-        if not llm_response:
-            st.warning("Please paste an LLM response first.")
+            st.warning("Please paste a merge plan response first.")
             return
-        st.session_state[MEMORY_FULL_RAW] = llm_response
+
+        st.session_state[MERGE_PLAN_RAW] = llm_response
+
         try:
-            memory_doc = parse_memory_document(llm_response)
-            st.session_state[MERGE_RESULT] = memory_doc
-            st.session_state.pop("merge_repair_changes", None)
-            st.success("✅ Parsed memory document successfully.")
-            summary = render_memory_summary(memory_doc)
-            st.json(summary)
+            plan = parse_merge_plan(llm_response)
+            memory_doc = apply_merge_plan(existing_memory, plan)
+            rendered = render_memory_document(memory_doc)
+            parse_memory_document(rendered)
         except ParseErrorCollection as e:
             st.error(render_error(e))
+            return
+        except ValueError as e:
+            st.error(str(e))
+            return
+
+        st.session_state[MEMORY_FULL_RAW] = rendered
+        st.session_state[MERGE_RESULT] = memory_doc
+        st.session_state.pop("merge_repair_changes", None)
+        st.success("✅ Merge plan applied successfully.")
+
+        st.subheader("Raw Merge Plan")
+        st.text_area(
+            "Raw Merge Plan",
+            value=llm_response,
+            height=200,
+            key="merge_plan_raw_display",
+        )
+
+        st.subheader("Rendered MEMORY_FULL")
+        st.code(rendered, language="markdown")
+
+        st.subheader("Memory Document Summary")
+        summary = render_memory_summary(memory_doc)
+        st.json(summary)
 
 
 def _render_merge_api() -> None:
@@ -163,8 +173,9 @@ def _render_merge_api() -> None:
                 validated_candidates=validated_raw,
                 llm_client=client,
             )
+            st.session_state[MERGE_PLAN_RAW] = result.raw_response
+            st.session_state[MEMORY_FULL_RAW] = result.memory_full_raw
             st.session_state[MERGE_RESULT] = result.memory_document
-            st.session_state[MEMORY_FULL_RAW] = result.raw_response
             st.session_state[MERGE_USAGE] = result.usage
             st.session_state[MERGE_COST] = result.cost_estimate
             st.session_state[MERGE_MODEL] = result.model
@@ -172,11 +183,11 @@ def _render_merge_api() -> None:
             st.error(render_error(e))
             return
 
-    # Display results if available
-    raw_response = st.session_state.get(MEMORY_FULL_RAW, "")
+    merge_plan_raw = st.session_state.get(MERGE_PLAN_RAW, "")
+    memory_full_raw = st.session_state.get(MEMORY_FULL_RAW, "")
     memory_doc: MemoryDocument | None = st.session_state.get(MERGE_RESULT, None)
 
-    if raw_response or memory_doc:
+    if merge_plan_raw or memory_doc:
         st.subheader("Rendered Prompt")
         service = MergeService()
         try:
@@ -188,9 +199,18 @@ def _render_merge_api() -> None:
         except ValueError:
             pass
 
-        if raw_response:
-            st.subheader("Raw LLM Response")
-            st.text_area("Raw Response", value=raw_response, height=200, key="merge_raw_display")
+        if merge_plan_raw:
+            st.subheader("Raw Merge Plan")
+            st.text_area(
+                "Raw Merge Plan",
+                value=merge_plan_raw,
+                height=200,
+                key="merge_plan_raw_display",
+            )
+
+        if memory_full_raw:
+            st.subheader("Rendered MEMORY_FULL")
+            st.code(memory_full_raw, language="markdown")
 
         if memory_doc:
             st.subheader("Memory Document Summary")
@@ -204,7 +224,7 @@ def _render_merge_api() -> None:
             "Merge",
             system_prompt=MergeService.SYSTEM_PROMPT,
             rendered_prompt=prompt,
-            raw_response=raw_response if raw_response else None,
+            raw_response=merge_plan_raw if merge_plan_raw else None,
             provider_usage=usage,
         )
         if usage is not None or cost is not None:

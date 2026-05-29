@@ -64,15 +64,37 @@ High precision is more important than high recall. Better to store nothing than 
 
 Purpose:
 
-- Merge existing memory and validated candidates into a new `memory_full.md`.
+- Merge existing memory and validated candidates into a structured merge plan.
+- The merge plan is then applied deterministically by Python to render `MEMORY_FULL`.
 - Make updates, deprecations, and conflicts visible.
 - Collect open questions separately.
 
 Output:
 
 ```text
-# MEMORY_FULL
-...
+ID|MERGE_DECISION|TARGET|SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|REASON
+```
+
+MERGE_DECISION values:
+
+| Value | Meaning |
+|-------|---------|
+| APPLY_ADD | Add as new memory entry |
+| APPLY_UPDATE | Update existing entry at TARGET |
+| APPLY_DEPRECATE | Mark existing entry at TARGET as deprecated |
+| SKIP_DROP | Skip this candidate (drop it) |
+| ADD_OPEN_QUESTION | Add to open questions list |
+
+Note: The Merger outputs a structured merge plan. Python applies the plan deterministically and renders `MEMORY_FULL`. This avoids LLM formatting errors and ensures consistent output.
+
+Canonical examples:
+
+```text
+M1|APPLY_ADD|-|G|RULE|H|D|Answer in German by default.|User preference.|Reusable global rule.
+M2|APPLY_UPDATE|M3|G|PREF|H|D|Use metric units by default.|User requested metric.|Updated preference.
+M3|APPLY_DEPRECATE|M5|G|RULE|M|D|Old rule text.|Superseded by new approach.|Outdated.
+M4|SKIP_DROP|-|T|FACT|L|T|Temporary testing note.|Not worth keeping.|Too trivial.
+M5|ADD_OPEN_QUESTION|-|P:RecipeBot|RULE|H|M|Should RecipeBot enforce strict ingredient checking?|Needs user decision.|Conflict between two proposed approaches.
 ```
 
 ## Step 4: Compressor
@@ -225,13 +247,15 @@ Rules:
 - Do not output a general summary.
 ```
 
-## Prompt: Merger
+## Prompt: Merger (MERGER_V1)
 
 ```text
 You are a memory merger.
 
 Goal:
-Create an updated memory file from existing memory and validated candidates.
+Create a structured merge plan from existing memory and validated candidates.
+You do NOT render MEMORY_FULL. You only output merge decisions.
+The application will render the final MEMORY_FULL deterministically.
 
 Existing Memory:
 <<<MEMORY
@@ -244,38 +268,28 @@ Validated Candidates:
 VALIDATED>>>
 
 Task:
-1. Take over KEEP and EDIT entries.
-2. Apply UPDATE to existing entries.
-3. Remove or mark DEPRECATE entries as obsolete.
-4. Do not take over DROP entries.
-5. Do not take over ASK entries as memory; list them separately under "Offene Klärungen".
-6. Merge duplicates.
-7. Keep each memory entry atomic.
-8. Keep evidence but shorten to the essential.
-9. Sort entries into sections in this order: ## GLOBAL, ## PROJECTS, ## REPOS, ## TEMPORARY, ## DEPRECATED.
-10. Use a compact, manually maintainable format.
+1. Decide whether to APPLY_ADD each KEEP/EDIT candidate as new entry.
+2. Decide whether to APPLY_UPDATE existing entries based on UPDATE candidates.
+3. Decide whether to APPLY_DEPRECATE entries marked DEPRECATE in candidates.
+4. SKIP_DROP entries that should not be added.
+5. ADD_OPEN_QUESTION for ASK entries; do not add them as memory.
+6. Do not output MEMORY_FULL yourself.
 
 Output-Format:
 
-# MEMORY_FULL
+ID|MERGE_DECISION|TARGET|SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|REASON
 
-## GLOBAL
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-
-## PROJECTS
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-
-## REPOS
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-
-## TEMPORARY
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-
-## DEPRECATED
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|DEPRECATION_REASON
-
-## OFFENE_KLÄRUNGEN
-QUESTION|WHY_IT_MATTERS
+Fields:
+- ID: Candidate ID or new ID for APPLY_ADD
+- MERGE_DECISION: APPLY_ADD, APPLY_UPDATE, APPLY_DEPRECATE, SKIP_DROP, ADD_OPEN_QUESTION
+- TARGET: For APPLY_UPDATE/DEPRECATE, ID of existing entry; for APPLY_ADD: -
+- SCOPE: G, P:<name>, R:<name>, T
+- TYPE: RULE, PREF, FACT, DECISION, AVOID, STYLE, SOURCE, TERM, TASK
+- PRIO: H, M, L
+- STABILITY: D, M, T
+- STATEMENT: Final memory text (for APPLY_ADD, APPLY_UPDATE) or question (for ADD_OPEN_QUESTION)
+- EVIDENCE: Supporting evidence, shortened
+- REASON: Why this decision was made
 
 INVALID-ALIAS WARNING:
 - Do NOT use these as SCOPE field values: GLOBAL, PROJECT, REPO, TEMPORARY.
@@ -283,35 +297,20 @@ INVALID-ALIAS WARNING:
 - Do NOT use: PREFERENCE. Use: PREF.
 - Do NOT use: HIGH, MEDIUM, LOW. Use: H, M, L.
 - Do NOT use: STABLE, DURABLE. Use: D, M, T.
-- Note: Section headers such as ## GLOBAL and ## TEMPORARY are allowed in MEMORY_FULL.
 
 Canonical Example (valid output):
-# MEMORY_FULL
-
-## GLOBAL
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-G|RULE|H|D|Answer in German by default.|User preference.
-
-## PROJECTS
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-P:RecipeBot|PREF|H|D|Use metric units in recipes.|User request.
-
-## REPOS
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-
-## TEMPORARY
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-
-## DEPRECATED
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|DEPRECATION_REASON
-
-## OFFENE_KLÄRUNGEN
-QUESTION|WHY_IT_MATTERS
+M1|APPLY_ADD|-|G|RULE|H|D|Answer in German by default.|User preference.|Reusable global rule.
+M2|APPLY_UPDATE|M3|G|PREF|H|D|Use metric units by default.|User requested metric.|Updated preference.
+M3|APPLY_DEPRECATE|M5|G|RULE|M|D|Old rule text.|Superseded by new approach.|Outdated.
+M4|SKIP_DROP|-|T|FACT|L|T|Temporary testing note.|Not worth keeping.|Too trivial.
+M5|ADD_OPEN_QUESTION|-|P:RecipeBot|RULE|H|M|Should RecipeBot enforce strict ingredient checking?|Needs user decision.|Conflict between two proposed approaches.
 
 Rules:
+- Do NOT output MEMORY_FULL.
+- Do NOT output section headers like ## GLOBAL.
+- Output only merge decision lines.
 - No JSON output.
 - No long explanations.
-- No normal summaries.
 - STATEMENT must be directly usable as future context.
 ```
 
@@ -376,7 +375,7 @@ Prompt templates should be versioned in code, e.g.:
 ```text
 extractor_v1
 validator_v1
-merger_v1
+merger_v1 (MERGER_V1)
 compressor_v1
 ```
 

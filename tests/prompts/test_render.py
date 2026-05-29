@@ -301,11 +301,6 @@ class TestRenderMergerPrompt:
         result = render_merger_prompt("", validated)
         assert validated in result
 
-    def test_contains_memory_full(self) -> None:
-        """Merger prompt contains # MEMORY_FULL."""
-        result = render_merger_prompt("", "validated")
-        assert "# MEMORY_FULL" in result
-
     def test_no_unresolved_placeholders(self) -> None:
         """No prompt accidentally contains unresolved placeholder markers."""
         result = render_merger_prompt("existing", "validated")
@@ -336,25 +331,37 @@ class TestRenderMergerPrompt:
         assert "PREFERENCE" in result
         assert "GLOBAL" in result
 
-    def test_contains_section_header_note(self) -> None:
-        """Merger prompt notes that section headers like ## GLOBAL are allowed."""
+    def test_merger_prompt_says_does_not_render_memory_full(self) -> None:
+        """Rendered prompt contains 'do NOT render MEMORY_FULL'."""
         result = render_merger_prompt("", "validated")
-        assert "Section headers such as ## GLOBAL" in result
+        assert "do NOT render MEMORY_FULL" in result
 
-    def test_contains_memory_full_header(self) -> None:
-        """Merger prompt contains # MEMORY_FULL header."""
+    def test_merger_prompt_says_app_renders_deterministically(self) -> None:
+        """Rendered prompt contains 'application will render ...'."""
         result = render_merger_prompt("", "validated")
-        assert "# MEMORY_FULL" in result
+        assert "application will render the final MEMORY_FULL deterministically" in result
 
-    def test_contains_global_section_header(self) -> None:
-        """Merger prompt contains ## GLOBAL section header."""
+    def test_merger_prompt_includes_merge_plan_format(self) -> None:
+        """Rendered prompt contains merge plan format ID|MERGE_DECISION|TARGET|... ."""
         result = render_merger_prompt("", "validated")
-        assert "## GLOBAL" in result
+        assert (
+            "ID|MERGE_DECISION|TARGET|SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|REASON" in result
+        )
 
-    def test_contains_projects_section_header(self) -> None:
-        """Merger prompt contains ## PROJECTS section header."""
+    def test_merger_prompt_has_apply_add_example(self) -> None:
+        """Rendered prompt contains APPLY_ADD example."""
         result = render_merger_prompt("", "validated")
-        assert "## PROJECTS" in result
+        assert "APPLY_ADD" in result
+
+    def test_merger_prompt_has_apply_update_example(self) -> None:
+        """Rendered prompt contains APPLY_UPDATE example."""
+        result = render_merger_prompt("", "validated")
+        assert "APPLY_UPDATE" in result
+
+    def test_merger_prompt_has_skip_drop_example(self) -> None:
+        """Rendered prompt contains SKIP_DROP example."""
+        result = render_merger_prompt("", "validated")
+        assert "SKIP_DROP" in result
 
     def test_contains_canonical_example_with_g_rule(self) -> None:
         """Merger prompt contains valid canonical example with G|RULE|H|D."""

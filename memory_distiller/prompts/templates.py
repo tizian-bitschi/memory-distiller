@@ -175,7 +175,9 @@ Rules:
 MERGER_V1 = """You are a memory merger.
 
 Goal:
-Create an updated memory file from existing memory and validated candidates.
+Create a merge plan for updating memory from existing memory and validated candidates.
+
+You do NOT render MEMORY_FULL. You only output merge decisions. The application will render the final MEMORY_FULL deterministically.
 
 Existing Memory:
 <<<MEMORY
@@ -188,38 +190,25 @@ Validated Candidates:
 VALIDATED>>>
 
 Task:
-1. Take over KEEP and EDIT entries.
-2. Apply UPDATE to existing entries.
-3. Remove or mark DEPRECATE entries as obsolete.
-4. Do not take over DROP entries.
-5. Do not take over ASK entries as memory; list them separately under "Offene Klärungen".
-6. Merge duplicates.
-7. Keep each memory entry atomic.
+1. Take over KEEP and EDIT entries via APPLY_ADD.
+2. Apply UPDATE to existing entries via APPLY_UPDATE.
+3. Remove or mark DEPRECATE entries as obsolete via APPLY_DEPRECATE.
+4. Do not take over DROP entries - use SKIP_DROP.
+5. Do not take over ASK entries as memory - use ADD_OPEN_QUESTION instead.
+6. Merge duplicates - skip duplicate statements.
+7. Keep evidence but shorten to the essential.
 8. Keep evidence but shorten to the essential.
-9. Sort entries into sections in this order: ## GLOBAL, ## PROJECTS, ## REPOS, ## TEMPORARY, ## DEPRECATED.
-10. Use a compact, manually maintainable format.
+9. Sort entries into sections: G (global), P:<project>, R:<repo>, T (temporary).
 
 Output-Format:
+ID|MERGE_DECISION|TARGET|SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|REASON
 
-# MEMORY_FULL
-
-## GLOBAL
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-
-## PROJECTS
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-
-## REPOS
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-
-## TEMPORARY
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-
-## DEPRECATED
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|DEPRECATION_REASON
-
-## OFFENE_KLÄRUNGEN
-QUESTION|WHY_IT_MATTERS
+MERGE_DECISION values:
+- APPLY_ADD: add new memory entry
+- APPLY_UPDATE: update existing entry (target = statement to find)
+- APPLY_DEPRECATE: mark entry as deprecated (target = statement to find, reason = deprecation reason)
+- SKIP_DROP: skip this candidate
+- ADD_OPEN_QUESTION: add to open questions (statement = question, reason = why it matters)
 
 INVALID-ALIAS WARNING:
 - Do NOT use these as SCOPE field values: GLOBAL, PROJECT, REPO, TEMPORARY.
@@ -227,36 +216,28 @@ INVALID-ALIAS WARNING:
 - Do NOT use: PREFERENCE. Use: PREF.
 - Do NOT use: HIGH, MEDIUM, LOW. Use: H, M, L.
 - Do NOT use: STABLE, DURABLE. Use: D, M, T.
-- Note: Section headers such as ## GLOBAL and ## TEMPORARY are allowed in MEMORY_FULL.
 
-Canonical Example (valid output):
-# MEMORY_FULL
+Canonical Examples:
 
-## GLOBAL
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-G|RULE|H|D|Answer in German by default.|User preference.
+APPLY_ADD (new global rule):
+M1|APPLY_ADD|-|G|RULE|H|D|Answer in German by default.|User preference.|German as default language.
 
-## PROJECTS
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-P:RecipeBot|PREF|H|D|Use metric units in recipes.|User request.
+APPLY_UPDATE (update existing project preference):
+M2|APPLY_UPDATE|RecipeBot should prefer simple file-based storage.|P:RecipeBot|PREF|H|D|RecipeBot should store recipes as Markdown files in the repository for the MVP.|User asked for Markdown files.|Refines storage preference.
 
-## REPOS
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
+SKIP_DROP (candidate should not be memorized):
+M3|SKIP_DROP|-|T|FACT|L|T|The user is only testing today.|User said not to remember.|Temporary detail.
 
-## TEMPORARY
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-
-## DEPRECATED
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE|DEPRECATION_REASON
-
-## OFFENE_KLÄRUNGEN
-QUESTION|WHY_IT_MATTERS
+ADD_OPEN_QUESTION (user needs to clarify):
+M4|ADD_OPEN_QUESTION|-|P:RecipeBot|RULE|H|M|Should RecipeBot support other languages for recipes?|Multilingual recipe support is not yet decided.|Needs user decision.
 
 Rules:
 - No JSON output.
+- No markdown MEMORY_FULL output.
 - No long explanations.
-- No normal summaries.
-- STATEMENT must be directly usable as future context."""
+- No summary sections.
+- STATEMENT must be directly usable as future context.
+- Do not output any explanation outside the merge plan format."""
 
 COMPRESSOR_V1 = """You are a memory compressor for LLM prompts.
 

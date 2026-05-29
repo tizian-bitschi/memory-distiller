@@ -28,6 +28,16 @@ class TestMergeTabPromptPreview:
         assert "st.text_area(" in source
         assert '"merge_llm_response"' in source or "key=" in source
 
+    def test_prompt_only_has_apply_merge_plan_button(self):
+        """Source contains 'Apply Merge Plan'."""
+        source = inspect.getsource(merge_tab_module)
+        assert "Apply Merge Plan" in source
+
+    def test_prompt_only_shows_merge_plan_response_label(self):
+        """Source contains 'Merge Plan Response'."""
+        source = inspect.getsource(merge_tab_module)
+        assert "Merge Plan Response" in source
+
 
 class TestMergeServiceRenderPrompt:
     """Tests for MergeService.render_prompt includes Existing Memory."""

@@ -14,6 +14,7 @@ from memory_distiller.domain.memory_entry import (
     MemoryDocument,
     MemoryEntry,
 )
+from memory_distiller.domain.merge_plan import MergeDecision, MergePlan, MergePlanEntry
 
 __all__ = [
     "CandidateAction",
@@ -21,6 +22,9 @@ __all__ = [
     "MemoryCandidate",
     "MemoryDocument",
     "MemoryEntry",
+    "MergeDecision",
+    "MergePlan",
+    "MergePlanEntry",
     "MemoryType",
     "ParseError",
     "ParseErrorCollection",
