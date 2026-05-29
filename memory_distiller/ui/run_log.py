@@ -48,42 +48,51 @@ def _sanitize_details(details: dict[str, Any] | None) -> dict[str, Any] | None:
         "env",
     )
 
-    # Pattern to match env var assignments like DEEPSEEK_API_KEY=value
-    env_var_pattern = re.compile(r"^[A-Z_]+=.+")
+    # Patterns for finding secrets in string values
+    _value_patterns = (
+        # API_KEY assignments: DEEPSEEK_API_KEY=sk-abc123
+        re.compile(r"\b[A-Z_]+_API_KEY\s*=\s*[^\s]+"),
+        # API_KEY as standalone word
+        re.compile(r"\b[A-Z_]+_API_KEY\b"),
+        # Authorization header: Authorization: Bearer abc123
+        re.compile(r"Authorization:\s*Bearer\s+[^\s]+"),
+        # Generic secret patterns: api_key: sk-abc123, password=x, token=abc
+        re.compile(r"\b(api_key|apikey|secret|token|password|auth|credential|env)\s*[:=]\s*[^\s]+"),
+    )
 
-    # Known secret key names to redact if they appear as values
-    known_secret_values = {
-        "DEEPSEEK_API_KEY",
-        "OPENAI_API_KEY",
-        "ANTHROPIC_API_KEY",
-        "GOOGLE_API_KEY",
-    }
-
-    result: dict[str, Any] = {}
-
-    for key, value in details.items():
-        # Check if key looks like a secret
+    def _is_secret_key(key: str) -> bool:
         key_lower = key.lower()
-        is_secret_key = any(pattern in key_lower for pattern in secret_key_patterns)
+        return any(pattern in key_lower for pattern in secret_key_patterns)
 
-        if is_secret_key:
-            result[key] = "[REDACTED]"
-            continue
+    def _sanitize_value(value: Any) -> Any:
+        # Recurse into dicts
+        if isinstance(value, dict):
+            return _sanitize_dict(value)
+        # Recurse into lists
+        if isinstance(value, list):
+            return [_sanitize_value(item) for item in value]
+        # Recurse into tuples (convert to list, sanitize, back to tuple)
+        if isinstance(value, tuple):
+            return tuple(_sanitize_value(item) for item in value)
+        # Sanitize strings
+        if isinstance(value, str):
+            sanitized = value
+            for pattern in _value_patterns:
+                sanitized = pattern.sub("[REDACTED]", sanitized)
+            return sanitized
+        # Pass through primitives unchanged
+        return value
 
-        # Check if value is a known secret key name
-        if isinstance(value, str) and value in known_secret_values:
-            result[key] = "[REDACTED]"
-            continue
+    def _sanitize_dict(d: dict[str, Any]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in d.items():
+            if _is_secret_key(key):
+                result[key] = "[REDACTED]"
+            else:
+                result[key] = _sanitize_value(value)
+        return result
 
-        # Check if value looks like an env var assignment
-        if isinstance(value, str) and env_var_pattern.match(value):
-            result[key] = "[REDACTED]"
-            continue
-
-        # Otherwise keep original value
-        result[key] = value
-
-    return result
+    return _sanitize_dict(details)
 
 
 def append_run_log_event(

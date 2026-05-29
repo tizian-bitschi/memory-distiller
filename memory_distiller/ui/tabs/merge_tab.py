@@ -111,6 +111,8 @@ def _render_merge_prompt_only() -> None:
                     "mode": "Prompt-only",
                     "parse_status": "failure",
                     "parser_errors": render_error(e),
+                    "rendered_merge_plan_prompt": prompt,
+                    "raw_merge_plan_response": llm_response,
                 },
             )
             return
@@ -124,6 +126,8 @@ def _render_merge_prompt_only() -> None:
                     "mode": "Prompt-only",
                     "parse_status": "failure",
                     "error": str(e),
+                    "rendered_merge_plan_prompt": prompt,
+                    "raw_merge_plan_response": llm_response,
                 },
             )
             return
@@ -139,8 +143,9 @@ def _render_merge_prompt_only() -> None:
             details={
                 "mode": "Prompt-only",
                 "parse_status": "success",
-                "rendered_merge_plan_prompt": prompt if "prompt" in dir() else None,
+                "rendered_merge_plan_prompt": prompt,
                 "raw_merge_plan_response": llm_response,
+                "merge_plan_entry_count": len(plan.entries),
                 "final_rendered_memory_full": rendered,
                 "memory_section_counts": render_memory_summary(memory_doc),
             },
@@ -213,6 +218,11 @@ def _render_merge_api() -> None:
             st.session_state[MERGE_USAGE] = result.usage
             st.session_state[MERGE_COST] = result.cost_estimate
             st.session_state[MERGE_MODEL] = result.model
+            try:
+                plan_for_logging = parse_merge_plan(result.raw_response)
+                merge_plan_entry_count = len(plan_for_logging.entries)
+            except Exception:
+                merge_plan_entry_count = None
             append_run_log_event(
                 step="merge",
                 event_type="api_response",
@@ -226,14 +236,7 @@ def _render_merge_api() -> None:
                     "rendered_merge_plan_prompt": result.prompt,
                     "raw_merge_plan_response": result.raw_response,
                     "parse_status": "success",
-                    "merge_plan_entry_count": (
-                        len(result.memory_document.global_entries)
-                        + len(result.memory_document.project_entries)
-                        + len(result.memory_document.repo_entries)
-                        + len(result.memory_document.temporary_entries)
-                        if result.memory_document
-                        else None
-                    ),
+                    "merge_plan_entry_count": merge_plan_entry_count,
                     "final_rendered_memory_full": result.memory_full_raw,
                     "memory_section_counts": render_memory_summary(result.memory_document)
                     if result.memory_document
@@ -265,6 +268,7 @@ def _render_merge_api() -> None:
                     "mode": "API",
                     "parse_status": "failure",
                     "error": str(e),
+                    "rendered_merge_plan_prompt": prompt,
                 },
             )
             return

@@ -338,6 +338,33 @@ class TestSecretRedaction:
         assert result["event_type"] == "start"
         assert result["count"] == 42
 
+    def test_nested_dict_secret_key_redaction(self):
+        """Nested dict api_key values are redacted."""
+        from memory_distiller.ui.run_log import _sanitize_details
+
+        details = {"outer": {"api_key": "sk-abc123"}}
+        result = _sanitize_details(details)
+        assert result["outer"]["api_key"] == "[REDACTED]"
+
+    def test_list_secret_redaction(self):
+        """List items with secret keys are redacted."""
+        from memory_distiller.ui.run_log import _sanitize_details
+
+        details = {"items": [{"password": "hunter2"}, "Authorization: Bearer abc123"]}
+        result = _sanitize_details(details)
+        assert result["items"][0]["password"] == "[REDACTED]"
+        assert "[REDACTED]" in result["items"][1]
+        assert "abc123" not in result["items"][1]
+
+    def test_string_substring_redaction(self):
+        """Secret-looking substrings inside longer strings are redacted."""
+        from memory_distiller.ui.run_log import _sanitize_details
+
+        details = {"rendered_prompt": "Please use DEEPSEEK_API_KEY=sk-abc123"}
+        result = _sanitize_details(details)
+        assert "sk-abc123" not in result["rendered_prompt"]
+        assert "[REDACTED]" in result["rendered_prompt"]
+
 
 class TestResultsTabDebugRunLog:
     """Test Results tab Debug Run Log integration."""
@@ -424,3 +451,39 @@ class TestMergeTabTerminology:
         assert "append_run_log_event" in source
         # The old terminology should NOT appear as a detail value in log calls
         assert "MEMORY_FULL-as-LLM-response" not in source
+
+
+class TestMergeTabMergePlanEntryCount:
+    """Test merge_tab includes merge_plan_entry_count in success logs."""
+
+    def test_merge_tab_merge_plan_entry_counts_from_plan_entries(self):
+        """merge_plan_entry_count comes from len(plan.entries), not MemoryDocument."""
+        from memory_distiller.ui.tabs import merge_tab
+
+        source = inspect.getsource(merge_tab)
+        # Should reference plan.entries or parse_merge_plan for entry count
+        assert "plan.entries" in source or "parse_merge_plan" in source
+
+    def test_prompt_only_merge_success_includes_merge_plan_entry_count(self):
+        """Prompt-only merge success log includes merge_plan_entry_count."""
+        from memory_distiller.ui.tabs import merge_tab
+
+        source = inspect.getsource(merge_tab)
+        # Find the apply_merge_plan success block and check for merge_plan_entry_count
+        apply_idx = source.find('event_type="apply_merge_plan"')
+        success_idx = source.find('parse_status": "success"', apply_idx)
+        assert success_idx != -1
+        section = source[apply_idx:success_idx + 200]
+        assert "merge_plan_entry_count" in section
+
+    def test_api_merge_success_includes_merge_plan_entry_count(self):
+        """API merge success log includes merge_plan_entry_count."""
+        from memory_distiller.ui.tabs import merge_tab
+
+        source = inspect.getsource(merge_tab)
+        # Find the API success block
+        api_idx = source.find('event_type="api_response"')
+        success_idx = source.find("parse_status", api_idx)
+        assert success_idx != -1
+        section = source[api_idx:success_idx + 300]
+        assert "merge_plan_entry_count" in section
