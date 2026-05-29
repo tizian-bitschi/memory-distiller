@@ -60,6 +60,7 @@ class MergeRunResult:
 
     prompt: str
     raw_response: str
+    memory_full_raw: str
     memory_document: MemoryDocument
     usage: LlmUsage | None = None
     cost_estimate: LlmCostEstimate | None = None

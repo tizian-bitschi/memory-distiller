@@ -21,31 +21,34 @@ class TestMergeService:
         assert validated in prompt
 
     def test_run_parses_memory_document(self) -> None:
-        """Verify result has memory_document."""
-        valid_text = """# MEMORY_FULL
-## GLOBAL
-SCOPE|TYPE|PRIO|STABILITY|STATEMENT|EVIDENCE
-G|RULE|H|D|Prefer critical feedback.|2026-05-27 Evidence
-"""
+        """Verify result has memory_document with parsed entries from merge plan."""
+        # Valid merge plan text (not MEMORY_FULL format)
+        valid_merge_plan = (
+            "M1|APPLY_ADD|-|G|RULE|H|D|Prefer critical feedback."
+            "|2026-05-27 Evidence.|New rule.\n"
+            "M2|SKIP_DROP|-|T|FACT|L|T|Temp detail.|User said.|Temporary.\n"
+        )
         service = MergeService()
-        mock_client = MockClient(response=valid_text)
+        mock_client = MockClient(response=valid_merge_plan)
         result = service.run(
             existing_memory="",
             validated_candidates="some validated candidates",
             llm_client=mock_client,
         )
         assert result.prompt is not None
-        assert result.raw_response == valid_text
+        assert result.raw_response == valid_merge_plan
         assert result.memory_document is not None
+        # APPLY_ADD creates a global entry
         assert len(result.memory_document.global_entries) == 1
+        assert result.memory_document.global_entries[0].statement == "Prefer critical feedback."
+        # SKIP_DROP is ignored
+        assert len(result.memory_document.temporary_entries) == 0
 
     def test_malformed_memory_document_raises_parser_error(self) -> None:
         """Verify ParseErrorCollection for bad output."""
         service = MergeService()
-        # Valid section header but wrong column count for entry
-        invalid_text = """# MEMORY_FULL
-## GLOBAL
-G|RULE|H|D|Invalid entry with wrong column count
+        # Invalid merge plan (wrong column count for merge plan = 10 columns required)
+        invalid_text = """M1|APPLY_ADD|G|RULE|H|D|Invalid entry with wrong column count
 """
         mock_client = MockClient(response=invalid_text)
         with pytest.raises(ParseErrorCollection):
@@ -54,6 +57,19 @@ G|RULE|H|D|Invalid entry with wrong column count
                 validated_candidates="some validated candidates",
                 llm_client=mock_client,
             )
+
+    def test_run_returns_memory_full_raw(self) -> None:
+        """Verify result.memory_full_raw is populated and contains # MEMORY_FULL."""
+        valid_merge_plan = "M1|APPLY_ADD|-|G|RULE|H|D|New global rule.|Evidence.|Reason.\n"
+        service = MergeService()
+        mock_client = MockClient(response=valid_merge_plan)
+        result = service.run(
+            existing_memory="",
+            validated_candidates="some validated candidates",
+            llm_client=mock_client,
+        )
+        assert result.memory_full_raw is not None
+        assert "# MEMORY_FULL" in result.memory_full_raw
 
 
 class TestMergeServiceRenderPromptValidation:

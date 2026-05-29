@@ -54,7 +54,7 @@ Paste the LLM response from your validator or run it via API. Parsing produces v
 
 Go to the Merge tab.
 
-Paste the LLM response from your merger or run it via API. Parsing produces a memory document.
+Paste the LLM merge plan response or run it via API. The app parses the merge plan, applies it to existing memory, and renders the final `MEMORY_FULL` deterministically.
 
 ### 5. Compress
 
@@ -103,7 +103,8 @@ Downloads are generated in memory. Nothing is saved automatically to disk.
 If parsing fails, the app shows an error with details. Common causes:
 
 - LLM output does not follow the pipe-delimited format expected by the parser
-- Malformed lines or missing required fields
+- Malformed lines, missing required fields, or invalid MERGE_DECISION values
+- For merge plans: invalid TARGET references or unrecognized scope values
 
 To fix: review the LLM output, correct the format, and re-paste. The app remains usable after parse errors.
 
