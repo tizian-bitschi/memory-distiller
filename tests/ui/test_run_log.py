@@ -473,7 +473,7 @@ class TestMergeTabMergePlanEntryCount:
         apply_idx = source.find('event_type="apply_merge_plan"')
         success_idx = source.find('parse_status": "success"', apply_idx)
         assert success_idx != -1
-        section = source[apply_idx:success_idx + 200]
+        section = source[apply_idx : success_idx + 200]
         assert "merge_plan_entry_count" in section
 
     def test_api_merge_success_includes_merge_plan_entry_count(self):
@@ -485,5 +485,5 @@ class TestMergeTabMergePlanEntryCount:
         api_idx = source.find('event_type="api_response"')
         success_idx = source.find("parse_status", api_idx)
         assert success_idx != -1
-        section = source[api_idx:success_idx + 300]
+        section = source[api_idx : success_idx + 300]
         assert "merge_plan_entry_count" in section
