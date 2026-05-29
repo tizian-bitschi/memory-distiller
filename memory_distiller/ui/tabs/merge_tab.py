@@ -20,6 +20,7 @@ from memory_distiller.ui.components import (
     render_usage_summary,
 )
 from memory_distiller.ui.llm_factory import create_deepseek_client_from_session_state
+from memory_distiller.ui.run_log import append_run_log_event
 from memory_distiller.ui.state import (
     EXISTING_MEMORY,
     MEMORY_FULL_RAW,
@@ -102,15 +103,53 @@ def _render_merge_prompt_only() -> None:
             parse_memory_document(rendered)
         except ParseErrorCollection as e:
             st.error(render_error(e))
+            append_run_log_event(
+                step="merge",
+                event_type="apply_merge_plan",
+                summary="Merge plan application failed",
+                details={
+                    "mode": "Prompt-only",
+                    "parse_status": "failure",
+                    "parser_errors": render_error(e),
+                    "rendered_merge_plan_prompt": prompt,
+                    "raw_merge_plan_response": llm_response,
+                },
+            )
             return
         except ValueError as e:
             st.error(str(e))
+            append_run_log_event(
+                step="merge",
+                event_type="apply_merge_plan",
+                summary="Merge plan application failed",
+                details={
+                    "mode": "Prompt-only",
+                    "parse_status": "failure",
+                    "error": str(e),
+                    "rendered_merge_plan_prompt": prompt,
+                    "raw_merge_plan_response": llm_response,
+                },
+            )
             return
 
         st.session_state[MEMORY_FULL_RAW] = rendered
         st.session_state[MERGE_RESULT] = memory_doc
         st.session_state.pop("merge_repair_changes", None)
         st.success("✅ Merge plan applied successfully.")
+        append_run_log_event(
+            step="merge",
+            event_type="apply_merge_plan",
+            summary="Merge plan applied successfully",
+            details={
+                "mode": "Prompt-only",
+                "parse_status": "success",
+                "rendered_merge_plan_prompt": prompt,
+                "raw_merge_plan_response": llm_response,
+                "merge_plan_entry_count": len(plan.entries),
+                "final_rendered_memory_full": rendered,
+                "memory_section_counts": render_memory_summary(memory_doc),
+            },
+        )
 
         st.subheader("Raw Merge Plan")
         st.text_area(
@@ -179,8 +218,59 @@ def _render_merge_api() -> None:
             st.session_state[MERGE_USAGE] = result.usage
             st.session_state[MERGE_COST] = result.cost_estimate
             st.session_state[MERGE_MODEL] = result.model
+            try:
+                plan_for_logging = parse_merge_plan(result.raw_response)
+                merge_plan_entry_count = len(plan_for_logging.entries)
+            except Exception:
+                merge_plan_entry_count = None
+            append_run_log_event(
+                step="merge",
+                event_type="api_response",
+                summary="Merge plan generated and applied successfully",
+                details={
+                    "mode": "API",
+                    "model": result.model,
+                    "temperature": st.session_state.get("temperature"),
+                    "thinking_enabled": st.session_state.get("thinking_enabled"),
+                    "reasoning_effort": st.session_state.get("reasoning_effort"),
+                    "rendered_merge_plan_prompt": result.prompt,
+                    "raw_merge_plan_response": result.raw_response,
+                    "parse_status": "success",
+                    "merge_plan_entry_count": merge_plan_entry_count,
+                    "final_rendered_memory_full": result.memory_full_raw,
+                    "memory_section_counts": render_memory_summary(result.memory_document)
+                    if result.memory_document
+                    else None,
+                    "usage": {
+                        "prompt_tokens": result.usage.prompt_tokens if result.usage else None,
+                        "completion_tokens": result.usage.completion_tokens
+                        if result.usage
+                        else None,
+                        "total_tokens": result.usage.total_tokens if result.usage else None,
+                    }
+                    if result.usage
+                    else None,
+                    "cost_estimate": str(result.cost_estimate.total_cost)
+                    if result.cost_estimate
+                    else None,
+                    "estimated_request_tokens": st.session_state.get(
+                        MERGE_ESTIMATED_REQUEST_TOKENS
+                    ),
+                },
+            )
         except Exception as e:  # Broad catch at UI boundary to prevent app crash
             st.error(render_error(e))
+            append_run_log_event(
+                step="merge",
+                event_type="api_response",
+                summary="Merge plan generation failed",
+                details={
+                    "mode": "API",
+                    "parse_status": "failure",
+                    "error": str(e),
+                    "rendered_merge_plan_prompt": prompt,
+                },
+            )
             return
 
     merge_plan_raw = st.session_state.get(MERGE_PLAN_RAW, "")

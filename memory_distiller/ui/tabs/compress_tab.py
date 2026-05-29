@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
+
 import streamlit as st
 
 from memory_distiller.application.compression_service import CompressionService
@@ -13,6 +15,7 @@ from memory_distiller.ui.components import (
     render_usage_summary,
 )
 from memory_distiller.ui.llm_factory import create_deepseek_client_from_session_state
+from memory_distiller.ui.run_log import append_run_log_event
 from memory_distiller.ui.state import (
     COMPRESS_COST,
     COMPRESS_ESTIMATED_REQUEST_TOKENS,
@@ -103,8 +106,29 @@ def _render_compress_prompt_only() -> None:
         raw_content = st.session_state.get(response_key, "")
         if save_memory_prompt_to_state(st.session_state, raw_content):  # type: ignore[arg-type]
             st.success("Memory prompt saved. You can download it from Export / Results.")
+            append_run_log_event(
+                step="compress",
+                event_type="save_memory_prompt",
+                summary="Memory prompt saved from prompt-only mode",
+                details={
+                    "mode": "Prompt-only",
+                    "save_status": "success",
+                    "rendered_prompt": prompt,
+                    "memory_prompt": raw_content,
+                },
+            )
         else:
             st.warning("Memory prompt cannot be empty.")
+            append_run_log_event(
+                step="compress",
+                event_type="save_memory_prompt",
+                summary="Memory prompt save failed",
+                details={
+                    "mode": "Prompt-only",
+                    "save_status": "failure",
+                    "error": "Memory prompt cannot be empty.",
+                },
+            )
 
 
 def _render_compress_api() -> None:
@@ -155,8 +179,41 @@ def _render_compress_api() -> None:
             st.session_state[COMPRESS_USAGE] = result.usage
             st.session_state[COMPRESS_COST] = result.cost_estimate
             st.session_state[COMPRESS_MODEL] = result.model
+            append_run_log_event(
+                step="compress",
+                event_type="api_response",
+                summary="Compression completed successfully",
+                details={
+                    "mode": "API",
+                    "model": result.model,
+                    "temperature": st.session_state.get("temperature"),
+                    "thinking_enabled": st.session_state.get("thinking_enabled"),
+                    "reasoning_effort": st.session_state.get("reasoning_effort"),
+                    "rendered_prompt": result.prompt,
+                    "raw_llm_response": result.raw_response,
+                    "memory_prompt": result.memory_prompt,
+                    "parse_status": "success",
+                    "usage": asdict(result.usage) if result.usage else None,
+                    "cost_estimate": str(result.cost_estimate.total_cost)
+                    if result.cost_estimate
+                    else None,
+                    "estimated_request_tokens": st.session_state.get(
+                        COMPRESS_ESTIMATED_REQUEST_TOKENS
+                    ),
+                },
+            )
         except Exception as e:  # Broad catch at UI boundary to prevent app crash
             st.error(render_error(e))
+            append_run_log_event(
+                step="compress",
+                event_type="api_response",
+                summary="Compression failed",
+                details={
+                    "mode": "API",
+                    "parse_status": "failure",
+                    "error": str(e),
+                },
+            )
             return
 
     # Display results if available
