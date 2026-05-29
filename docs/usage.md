@@ -173,6 +173,36 @@ The estimate is a simple heuristic (character count ÷ 4) and is labeled as "est
 
 **No token data is persisted**. All token counts exist only in the current session and are cleared when you refresh or close the app.
 
+## Debug Run Log
+
+The app keeps a structured in-memory run log that records explicit pipeline actions and important results. This log is useful for debugging and reproducibility.
+
+### What is logged
+
+The run log records events for:
+- Chat log and existing memory uploads
+- Extract, Validate, Merge, and Compress step executions
+- Parse results and repair actions
+- API usage metadata and estimated costs
+
+### Session-only
+
+The run log is stored in the current browser session only. It is **not** written to disk automatically, **not** sent to external services, and **not** persisted when you refresh or close the app.
+
+### Export
+
+In the **Export / Results** tab, you can download the current run log as:
+- `debug_run.md` — human-readable Markdown format
+- `debug_run.json` — structured JSON format with schema version
+
+### Privacy warning
+
+Exported logs may contain private chat content, prompts, and LLM responses. Review the content before sharing. No API keys or secrets are included intentionally.
+
+### Clear log
+
+You can clear the current run log at any time from the Export / Results tab. This removes all recorded events from the current session.
+
 ## Privacy Notes
 
 **Prompt-only mode**: Your data stays in the browser session. Nothing is sent to any external service.

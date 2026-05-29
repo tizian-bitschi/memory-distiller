@@ -13,6 +13,7 @@ from memory_distiller.ui.components import (
     format_token_count,
     render_usage_summary,
 )
+from memory_distiller.ui.run_log import build_run_log_json, build_run_log_markdown, clear_run_log
 from memory_distiller.ui.state import (
     CANDIDATES_RAW,
     COMPRESS_COST,
@@ -26,6 +27,7 @@ from memory_distiller.ui.state import (
     MERGE_COST,
     MERGE_ESTIMATED_REQUEST_TOKENS,
     MERGE_USAGE,
+    RUN_LOG_EVENTS,
     VALIDATE_COST,
     VALIDATE_ESTIMATED_REQUEST_TOKENS,
     VALIDATE_USAGE,
@@ -137,5 +139,40 @@ def render_results_tab() -> None:
         if total_cost is not None:
             st.write(f"**Total estimated cost:** {format_cost(total_cost)}")
         st.caption("Costs are estimates based on configured pricing.")
+
+    st.divider()
+    st.subheader("Debug Run Log")
+
+    events = st.session_state.get(RUN_LOG_EVENTS, [])
+    st.write(f"Events recorded: {len(events)}")
+    st.caption(
+        "Privacy notice: Exported logs may contain private chat content, "
+        "prompts, and LLM responses. No API keys or secrets are included intentionally."
+    )
+
+    if events:
+        markdown_data = build_run_log_markdown(events)
+        json_data = build_run_log_json(events)
+
+        st.download_button(
+            "Download debug_run.md",
+            data=markdown_data,
+            file_name="debug_run.md",
+            mime="text/markdown",
+            key="download_debug_run_md",
+        )
+        st.download_button(
+            "Download debug_run.json",
+            data=json_data,
+            file_name="debug_run.json",
+            mime="application/json",
+            key="download_debug_run_json",
+        )
+    else:
+        st.caption("No events recorded yet. Run pipeline steps to generate a debug log.")
+
+    if st.button("Clear current run log", key="clear_run_log_btn"):
+        clear_run_log()
+        st.rerun()
 
     st.caption("Downloads are generated in memory. Nothing is saved automatically.")

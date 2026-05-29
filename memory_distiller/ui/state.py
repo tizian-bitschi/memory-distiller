@@ -51,6 +51,9 @@ COMPRESS_ESTIMATED_REQUEST_TOKENS: str = "compress_estimated_request_tokens"
 
 DEEPSEEK_BALANCE: str = "deepseek_balance"
 
+# Pipeline run log
+RUN_LOG_EVENTS: str = "run_log_events"
+
 # Default values
 DEFAULT_MODE: str = "Prompt-only"
 DEFAULT_MODEL: str = "deepseek-v4-pro"
@@ -103,6 +106,7 @@ def initialize_session_state() -> None:
     st.session_state.setdefault(MERGE_ESTIMATED_REQUEST_TOKENS, None)
     st.session_state.setdefault(COMPRESS_ESTIMATED_REQUEST_TOKENS, None)
     st.session_state.setdefault(DEEPSEEK_BALANCE, None)
+    st.session_state.setdefault(RUN_LOG_EVENTS, [])
 
 
 def get_state_value(key: str, default: str | None = None) -> str | None:

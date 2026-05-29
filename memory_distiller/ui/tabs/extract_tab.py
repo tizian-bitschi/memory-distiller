@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
+
 import streamlit as st
 
 from memory_distiller.application.extraction_service import ExtractionService
@@ -18,6 +20,7 @@ from memory_distiller.ui.components import (
     render_usage_summary,
 )
 from memory_distiller.ui.llm_factory import create_deepseek_client_from_session_state
+from memory_distiller.ui.run_log import append_run_log_event
 from memory_distiller.ui.state import (
     CANDIDATES_RAW,
     CHAT_LOG,
@@ -89,6 +92,16 @@ def _render_extract_prompt_only() -> None:
             repaired, changes = normalize_candidate_lines(llm_response)
             st.session_state["extract_llm_response"] = repaired
             st.session_state["extract_repair_changes"] = changes
+            append_run_log_event(
+                step="extract",
+                event_type="repair",
+                summary=f"Repaired {len(changes)} enum aliases",
+                details={
+                    "mode": "Prompt-only",
+                    "repair_count": len(changes),
+                    "changes": changes,
+                },
+            )
             st.rerun()
 
     changes = st.session_state.get("extract_repair_changes", [])
@@ -109,8 +122,32 @@ def _render_extract_prompt_only() -> None:
             st.session_state[EXTRACTION_RESULT] = candidates
             st.session_state.pop("extract_repair_changes", None)
             st.success(f"✅ Parsed {len(candidates)} candidates successfully.")
+            append_run_log_event(
+                step="extract",
+                event_type="parse_candidates",
+                summary=f"Parsed {len(candidates)} candidates",
+                details={
+                    "mode": "Prompt-only",
+                    "parse_status": "success",
+                    "candidate_count": len(candidates),
+                    "rendered_prompt": prompt,
+                    "raw_llm_response": llm_response,
+                },
+            )
         except ParseErrorCollection as e:
             st.error(render_error(e))
+            append_run_log_event(
+                step="extract",
+                event_type="parse_candidates",
+                summary="Parse Candidates failed",
+                details={
+                    "mode": "Prompt-only",
+                    "parse_status": "failure",
+                    "rendered_prompt": prompt,
+                    "raw_llm_response": llm_response,
+                    "parser_errors": render_error(e),
+                },
+            )
 
 
 def _render_extract_api() -> None:
@@ -160,8 +197,42 @@ def _render_extract_api() -> None:
             st.session_state[EXTRACT_USAGE] = result.usage
             st.session_state[EXTRACT_COST] = result.cost_estimate
             st.session_state[EXTRACT_MODEL] = result.model
+            append_run_log_event(
+                step="extract",
+                event_type="api_response",
+                summary=f"Extracted {len(result.candidates)} candidates via API",
+                details={
+                    "mode": "API",
+                    "model": result.model,
+                    "temperature": st.session_state.get("temperature"),
+                    "thinking_enabled": st.session_state.get("thinking_enabled"),
+                    "reasoning_effort": st.session_state.get("reasoning_effort"),
+                    "rendered_prompt": result.prompt,
+                    "raw_llm_response": result.raw_response,
+                    "parse_status": "success",
+                    "candidate_count": len(result.candidates),
+                    "usage": asdict(result.usage) if result.usage else None,
+                    "cost_estimate": str(result.cost_estimate.total_cost)
+                    if result.cost_estimate
+                    else None,
+                    "estimated_request_tokens": st.session_state.get(
+                        EXTRACT_ESTIMATED_REQUEST_TOKENS
+                    ),
+                },
+            )
         except Exception as e:  # Broad catch at UI boundary to prevent app crash
             st.error(render_error(e))
+            append_run_log_event(
+                step="extract",
+                event_type="api_response",
+                summary="Extract API call failed",
+                details={
+                    "mode": "API",
+                    "rendered_prompt": prompt,
+                    "parse_status": "failure",
+                    "error": str(e),
+                },
+            )
             return
 
     # Display results if available

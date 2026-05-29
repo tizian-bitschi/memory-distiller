@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 
 import streamlit as st
 
@@ -14,6 +15,7 @@ from memory_distiller.io.file_import import (
 )
 from memory_distiller.io.html_chat_import import HtmlChatImportError
 from memory_distiller.ui.components import estimate_tokens
+from memory_distiller.ui.run_log import append_run_log_event
 from memory_distiller.ui.state import (
     CHAT_LOG,
     EXISTING_MEMORY,
@@ -42,13 +44,38 @@ def render_input_tab() -> None:
                 st.session_state[LAST_CHAT_LOG_UPLOAD_NAME] = chat_log_file.name
             else:
                 try:
-                    text = read_chat_log(chat_log_file.read(), filename=chat_log_file.name)
+                    raw_bytes = chat_log_file.read()
+                    text = read_chat_log(raw_bytes, filename=chat_log_file.name)
                     st.session_state[CHAT_LOG] = text
                     st.session_state[LAST_CHAT_LOG_UPLOAD_NAME] = chat_log_file.name
+                    append_run_log_event(
+                        step="input",
+                        event_type="upload_processed",
+                        summary=f"Chat log uploaded: {chat_log_file.name}",
+                        details={
+                            "filename": chat_log_file.name,
+                            "extension": os.path.splitext(chat_log_file.name)[1].lower(),
+                            "size_bytes": len(raw_bytes),
+                            "decoded_character_count": len(text),
+                            "import_type": "html"
+                            if chat_log_file.name.lower().endswith((".html", ".htm"))
+                            else "text",
+                        },
+                    )
                     st.rerun()
                 except (ValueError, HtmlChatImportError) as e:
                     st.error(str(e))
                     st.session_state[LAST_CHAT_LOG_UPLOAD_NAME] = chat_log_file.name
+                    append_run_log_event(
+                        step="input",
+                        event_type="upload_processed",
+                        summary=f"Chat log upload failed: {chat_log_file.name}",
+                        details={
+                            "filename": chat_log_file.name,
+                            "extension": os.path.splitext(chat_log_file.name)[1].lower(),
+                            "import_error": str(e),
+                        },
+                    )
     st.caption("Uploaded files are read into the current session only and are not written to disk.")
     st.text_area(
         "Paste your chat log here",
@@ -85,10 +112,31 @@ def render_input_tab() -> None:
                     text = decode_uploaded_text(raw_bytes, filename=existing_memory_file.name)
                     st.session_state[EXISTING_MEMORY] = text
                     st.session_state[LAST_EXISTING_MEMORY_UPLOAD_NAME] = current_identity
+                    append_run_log_event(
+                        step="input",
+                        event_type="upload_processed",
+                        summary=f"Existing memory uploaded: {existing_memory_file.name}",
+                        details={
+                            "filename": existing_memory_file.name,
+                            "extension": os.path.splitext(existing_memory_file.name)[1].lower(),
+                            "size_bytes": len(raw_bytes),
+                            "decoded_character_count": len(text),
+                        },
+                    )
                     st.rerun()
                 except ValueError as e:
                     st.error(str(e))
                     st.session_state[LAST_EXISTING_MEMORY_UPLOAD_NAME] = current_identity
+                    append_run_log_event(
+                        step="input",
+                        event_type="upload_processed",
+                        summary=f"Existing memory upload failed: {existing_memory_file.name}",
+                        details={
+                            "filename": existing_memory_file.name,
+                            "extension": os.path.splitext(existing_memory_file.name)[1].lower(),
+                            "import_error": str(e),
+                        },
+                    )
     st.caption("Uploaded files are read into the current session only and are not written to disk.")
     st.text_area(
         "Load existing memory (optional)",
