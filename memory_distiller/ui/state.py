@@ -42,6 +42,12 @@ VALIDATE_COST: str = "validate_cost"
 MERGE_COST: str = "merge_cost"
 COMPRESS_COST: str = "compress_cost"
 
+# Estimated request tokens per step
+EXTRACT_ESTIMATED_REQUEST_TOKENS: str = "extract_estimated_request_tokens"
+VALIDATE_ESTIMATED_REQUEST_TOKENS: str = "validate_estimated_request_tokens"
+MERGE_ESTIMATED_REQUEST_TOKENS: str = "merge_estimated_request_tokens"
+COMPRESS_ESTIMATED_REQUEST_TOKENS: str = "compress_estimated_request_tokens"
+
 DEEPSEEK_BALANCE: str = "deepseek_balance"
 
 # Default values
@@ -89,6 +95,11 @@ def initialize_session_state() -> None:
     st.session_state.setdefault(VALIDATE_COST, None)
     st.session_state.setdefault(MERGE_COST, None)
     st.session_state.setdefault(COMPRESS_COST, None)
+    # Estimated request tokens per step
+    st.session_state.setdefault(EXTRACT_ESTIMATED_REQUEST_TOKENS, None)
+    st.session_state.setdefault(VALIDATE_ESTIMATED_REQUEST_TOKENS, None)
+    st.session_state.setdefault(MERGE_ESTIMATED_REQUEST_TOKENS, None)
+    st.session_state.setdefault(COMPRESS_ESTIMATED_REQUEST_TOKENS, None)
     st.session_state.setdefault(DEEPSEEK_BALANCE, None)
 
 

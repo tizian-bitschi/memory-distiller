@@ -171,3 +171,41 @@ class TestResultsSectionPreviewAndDownload:
         source = inspect.getsource(render_results_tab)
         msg = "render_results_tab should use st.code, not st.text_area"
         assert "st.text_area" not in source, msg
+
+
+class TestResultsTabPromptSizeSummary:
+    """Tests for Issue #38 - Prompt Size Summary in results_tab."""
+
+    def test_source_contains_prompt_size_summary_header(self):
+        """Results tab source contains 'Prompt Size Summary' header."""
+        source = inspect.getsource(render_results_tab)
+        assert "Prompt Size Summary" in source
+
+    def test_source_imports_format_token_count(self):
+        """Results tab imports format_token_count from components."""
+        source = inspect.getsource(render_results_tab)
+        assert "format_token_count" in source
+
+    def test_source_references_all_estimated_request_tokens_keys(self):
+        """Results tab references all *_ESTIMATED_REQUEST_TOKENS state keys."""
+        source = inspect.getsource(render_results_tab)
+        assert "EXTRACT_ESTIMATED_REQUEST_TOKENS" in source
+        assert "VALIDATE_ESTIMATED_REQUEST_TOKENS" in source
+        assert "MERGE_ESTIMATED_REQUEST_TOKENS" in source
+        assert "COMPRESS_ESTIMATED_REQUEST_TOKENS" in source
+
+    def test_prompt_size_summary_uses_st_metric(self):
+        """Prompt size summary uses st.metric for display."""
+        source = inspect.getsource(render_results_tab)
+        metric_idx = source.find("Prompt Size Summary")
+        assert metric_idx != -1
+        metric_section = source[metric_idx:]
+        assert "st.metric" in metric_section
+
+    def test_prompt_size_summary_checks_session_state_values(self):
+        """Prompt size summary reads from session state for each step."""
+        source = inspect.getsource(render_results_tab)
+        assert "st.session_state.get(EXTRACT_ESTIMATED_REQUEST_TOKENS)" in source
+        assert "st.session_state.get(VALIDATE_ESTIMATED_REQUEST_TOKENS)" in source
+        assert "st.session_state.get(MERGE_ESTIMATED_REQUEST_TOKENS)" in source
+        assert "st.session_state.get(COMPRESS_ESTIMATED_REQUEST_TOKENS)" in source

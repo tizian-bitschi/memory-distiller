@@ -7,9 +7,13 @@ from memory_distiller.io.candidate_parser import parse_validated_candidates
 from memory_distiller.llm.base import LlmClient
 from memory_distiller.prompts.render import render_validator_prompt
 
+DEFAULT_SYSTEM_PROMPT: str = "Du bist ein strenger Memory-Validator."
+
 
 class ValidationService:
     """Service for validating memory candidates."""
+
+    SYSTEM_PROMPT: str = DEFAULT_SYSTEM_PROMPT
 
     def render_prompt(self, *, existing_memory: str, chat_log: str, candidates: str) -> str:
         """Render validator prompt.
@@ -34,7 +38,7 @@ class ValidationService:
         chat_log: str,
         candidates: str,
         llm_client: LlmClient,
-        system_prompt: str = "Du bist ein strenger Memory-Validator.",
+        system_prompt: str = SYSTEM_PROMPT,
     ) -> ValidationRunResult:
         """Run validation: render prompt, call LLM, parse validated candidates.
 

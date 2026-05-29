@@ -6,9 +6,13 @@ from memory_distiller.application.models import CompressionRunResult
 from memory_distiller.llm.base import LlmClient
 from memory_distiller.prompts.render import render_compressor_prompt
 
+DEFAULT_SYSTEM_PROMPT: str = "Du bist ein Memory-Kompressor für LLM-Prompts."
+
 
 class CompressionService:
     """Service for compressing memory into a prompt-friendly format."""
+
+    SYSTEM_PROMPT: str = DEFAULT_SYSTEM_PROMPT
 
     def render_prompt(self, *, memory_full: str, next_context: str = "") -> str:
         """Render compressor prompt.
@@ -31,7 +35,7 @@ class CompressionService:
         memory_full: str,
         next_context: str = "",
         llm_client: LlmClient,
-        system_prompt: str = "Du bist ein Memory-Kompressor für LLM-Prompts.",
+        system_prompt: str = SYSTEM_PROMPT,
     ) -> CompressionRunResult:
         """Run compression: render prompt, call LLM, return raw response as memory_prompt.
 

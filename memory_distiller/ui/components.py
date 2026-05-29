@@ -153,7 +153,7 @@ def format_token_count(value: int | None) -> str:
     Returns:
         Formatted string.
     """
-    if value is None:
+    if value is None or not isinstance(value, int):
         return "—"
     return f"{value:,}"
 
@@ -284,3 +284,88 @@ def aggregate_cost(costs: Sequence[LlmCostEstimate | None]) -> Decimal | None:
             else:
                 total = total + cost.total_cost
     return total
+
+
+def _compute_request_tokens(system_prompt: str | None, rendered_prompt: str | None) -> int | None:
+    """Compute estimated request tokens from system + rendered prompt.
+
+    Args:
+        system_prompt: System prompt string or None.
+        rendered_prompt: Rendered prompt string or None.
+
+    Returns:
+        Estimated total request tokens or None if both inputs are None.
+    """
+    if system_prompt is None and rendered_prompt is None:
+        return None
+    total = 0
+    if system_prompt:
+        total += estimate_tokens(system_prompt)
+    if rendered_prompt:
+        total += estimate_tokens(rendered_prompt)
+    return total
+
+
+def render_token_summary(
+    label: str,
+    *,
+    system_prompt: str | None = None,
+    rendered_prompt: str | None = None,
+    raw_response: str | None = None,
+    provider_usage: LlmUsage | None = None,
+) -> None:
+    """Render token summary in a Streamlit expander.
+
+    Args:
+        label: Label for the expander.
+        system_prompt: System prompt string or None.
+        rendered_prompt: Rendered prompt string or None.
+        raw_response: Raw LLM response string or None.
+        provider_usage: Provider-reported LlmUsage or None.
+    """
+    has_system = system_prompt is not None
+    has_rendered = rendered_prompt is not None
+    has_response = raw_response is not None
+    has_usage = provider_usage is not None
+
+    if not (has_system or has_rendered or has_response or has_usage):
+        return
+
+    request_tokens = _compute_request_tokens(system_prompt, rendered_prompt)
+
+    with st.expander(f"🔍 {label} Token Summary"):
+        if has_system and system_prompt is not None:
+            st.write(
+                f"**Estimated system prompt tokens:** "
+                f"{format_token_count(estimate_tokens(system_prompt))}"
+            )
+
+        if has_rendered and rendered_prompt is not None:
+            st.write(
+                f"**Estimated rendered prompt tokens:** "
+                f"{format_token_count(estimate_tokens(rendered_prompt))}"
+            )
+
+        if request_tokens is not None:
+            st.write(f"**Estimated request tokens:** {format_token_count(request_tokens)}")
+
+        if has_response and raw_response is not None:
+            st.write(
+                f"**Estimated response tokens:** "
+                f"{format_token_count(estimate_tokens(raw_response))}"
+            )
+
+        if has_usage and provider_usage is not None:
+            st.write("**Provider-reported usage:**")
+            cols = st.columns(3)
+            with cols[0]:
+                st.metric("Prompt tokens", format_token_count(provider_usage.prompt_tokens))
+            with cols[1]:
+                st.metric("Completion tokens", format_token_count(provider_usage.completion_tokens))
+            with cols[2]:
+                st.metric("Total tokens", format_token_count(provider_usage.total_tokens))
+
+            if request_tokens is not None and provider_usage.prompt_tokens is not None:
+                delta = request_tokens - provider_usage.prompt_tokens
+                st.write(f"**Delta:** {format_token_count(delta)}")
+                st.caption("Delta = estimated request tokens minus provider-reported prompt tokens")

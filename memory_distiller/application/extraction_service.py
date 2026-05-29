@@ -7,9 +7,13 @@ from memory_distiller.io.candidate_parser import parse_candidates
 from memory_distiller.llm.base import LlmClient
 from memory_distiller.prompts.render import render_extractor_prompt
 
+DEFAULT_SYSTEM_PROMPT: str = "Du bist ein strenger Memory-Extractor."
+
 
 class ExtractionService:
     """Service for extracting memory candidates from chat logs."""
+
+    SYSTEM_PROMPT: str = DEFAULT_SYSTEM_PROMPT
 
     def render_prompt(self, *, existing_memory: str, chat_log: str) -> str:
         """Render extractor prompt.
@@ -32,7 +36,7 @@ class ExtractionService:
         existing_memory: str,
         chat_log: str,
         llm_client: LlmClient,
-        system_prompt: str = "Du bist ein strenger Memory-Extractor.",
+        system_prompt: str = SYSTEM_PROMPT,
     ) -> ExtractionRunResult:
         """Run extraction: render prompt, call LLM, parse candidates.
 

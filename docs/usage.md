@@ -152,6 +152,26 @@ The balance is **not** checked automatically — you must click the button. Bala
 - Usage and balance data are kept **in session state only** and disappear when you refresh the page.
 - No usage or balance data is written to disk.
 
+## Prompt Token Transparency
+
+Each pipeline step (Extract, Validate, Merge, Compress) shows an **estimated** prompt/request token count before the API call. The estimate includes:
+
+- **System prompt** — the fixed instructions guiding the model
+- **Rendered prompt** — your chat log, existing memory, and step context combined
+
+The estimate is a simple heuristic (character count ÷ 4) and is labeled as "estimated". It **may differ** from the provider-reported token count.
+
+**After each API call**, the app also shows **provider-reported usage** when available (e.g., from DeepSeek's response metadata). Provider-reported figures are:
+
+- More accurate than estimates
+- A better source for actual billing and cost tracking
+- Shown alongside the estimate for comparison
+- The basis for cost calculations in the Usage & Cost section
+
+**Delta display**: When both estimate and provider-reported usage are available, the app shows the difference so you can see how the estimate compared to reality.
+
+**No token data is persisted**. All token counts exist only in the current session and are cleared when you refresh or close the app.
+
 ## Privacy Notes
 
 **Prompt-only mode**: Your data stays in the browser session. Nothing is sent to any external service.
