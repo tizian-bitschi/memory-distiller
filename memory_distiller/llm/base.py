@@ -29,9 +29,7 @@ class LlmClient(Protocol):
 class UsageAwareLlmClient(LlmClient, Protocol):
     """Protocol for LLM clients that support usage metadata."""
 
-    def complete_with_usage(
-        self, *, system_prompt: str, user_prompt: str
-    ) -> LlmResponse:
+    def complete_with_usage(self, *, system_prompt: str, user_prompt: str) -> LlmResponse:
         """Generate completion from LLM with usage metadata.
 
         Args:
