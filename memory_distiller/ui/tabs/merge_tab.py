@@ -54,7 +54,7 @@ def _render_merge_prompt_only() -> None:
         st.error(str(e))
         return
 
-    st.text_area("Prompt", value=prompt, height=400, key="merge_prompt_display")
+    st.code(prompt, language="text")
 
     st.subheader("LLM Response")
     llm_response = st.text_area(
@@ -145,7 +145,7 @@ def _render_merge_api() -> None:
                 existing_memory=existing_memory,
                 validated_candidates=validated_raw,
             )
-            st.text_area("Prompt", value=prompt, height=300, key="merge_api_prompt_display")
+            st.code(prompt, language="text")
         except ValueError:
             pass
 

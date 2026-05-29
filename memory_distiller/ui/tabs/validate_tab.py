@@ -65,7 +65,7 @@ def _render_validate_prompt_only() -> None:
         st.error(str(e))
         return
 
-    st.text_area("Prompt", value=prompt, height=400, key="validate_prompt_display")
+    st.code(prompt, language="text")
 
     st.subheader("LLM Response")
     llm_response = st.text_area(
@@ -161,7 +161,7 @@ def _render_validate_api() -> None:
                 chat_log=chat_log,
                 candidates=candidates_raw,
             )
-            st.text_area("Prompt", value=prompt, height=300, key="validate_api_prompt_display")
+            st.code(prompt, language="text")
         except ValueError:
             pass
 

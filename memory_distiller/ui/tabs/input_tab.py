@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+
 import streamlit as st
 
 from memory_distiller.io.file_import import (
@@ -66,25 +68,27 @@ def render_input_tab() -> None:
         key="existing_memory_upload",
     )
     if existing_memory_file is not None:
-        last = st.session_state.get(LAST_EXISTING_MEMORY_UPLOAD_NAME, "")
-        if existing_memory_file.name != last:
+        last_identity = st.session_state.get(LAST_EXISTING_MEMORY_UPLOAD_NAME, "")
+        # Compute hash of uploaded bytes for content-based change detection
+        raw_bytes = existing_memory_file.read()
+        file_hash = hashlib.sha256(raw_bytes).hexdigest()
+        current_identity = f"{existing_memory_file.name}|{file_hash}"
+        if current_identity != last_identity:
             if not validate_text_file_extension(existing_memory_file.name):
                 st.error(
                     f"Invalid file extension for {existing_memory_file.name!r}. "
                     "Allowed: .txt, .md, .markdown"
                 )
-                st.session_state[LAST_EXISTING_MEMORY_UPLOAD_NAME] = existing_memory_file.name
+                st.session_state[LAST_EXISTING_MEMORY_UPLOAD_NAME] = current_identity
             else:
                 try:
-                    text = decode_uploaded_text(
-                        existing_memory_file.read(), filename=existing_memory_file.name
-                    )
+                    text = decode_uploaded_text(raw_bytes, filename=existing_memory_file.name)
                     st.session_state[EXISTING_MEMORY] = text
-                    st.session_state[LAST_EXISTING_MEMORY_UPLOAD_NAME] = existing_memory_file.name
+                    st.session_state[LAST_EXISTING_MEMORY_UPLOAD_NAME] = current_identity
                     st.rerun()
                 except ValueError as e:
                     st.error(str(e))
-                    st.session_state[LAST_EXISTING_MEMORY_UPLOAD_NAME] = existing_memory_file.name
+                    st.session_state[LAST_EXISTING_MEMORY_UPLOAD_NAME] = current_identity
     st.caption("Uploaded files are read into the current session only and are not written to disk.")
     st.text_area(
         "Load existing memory (optional)",
