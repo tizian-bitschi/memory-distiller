@@ -65,7 +65,7 @@ def _render_compress_prompt_only() -> None:
         st.error(str(e))
         return
 
-    st.text_area("Prompt", value=prompt, height=400, key="compress_prompt_display")
+    st.code(prompt, language="text")
 
     st.divider()
     st.subheader("LLM Response / Memory Prompt")
@@ -132,7 +132,7 @@ def _render_compress_api() -> None:
         next_context = st.session_state.get(NEXT_CONTEXT, "")
         try:
             prompt = service.render_prompt(memory_full=memory_full_raw, next_context=next_context)
-            st.text_area("Prompt", value=prompt, height=300, key="compress_api_prompt_display")
+            st.code(prompt, language="text")
         except ValueError:
             pass
 

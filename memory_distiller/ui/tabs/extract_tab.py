@@ -55,7 +55,7 @@ def _render_extract_prompt_only() -> None:
         st.error(str(e))
         return
 
-    st.text_area("Prompt", value=prompt, height=400, key="extract_prompt_display")
+    st.code(prompt, language="text")
 
     st.subheader("LLM Response")
     llm_response = st.text_area(
@@ -141,7 +141,7 @@ def _render_extract_api() -> None:
         service = ExtractionService()
         try:
             prompt = service.render_prompt(existing_memory=existing_memory, chat_log=chat_log)
-            st.text_area("Prompt", value=prompt, height=300, key="extract_api_prompt_display")
+            st.code(prompt, language="text")
         except ValueError:
             pass
 

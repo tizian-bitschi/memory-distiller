@@ -85,9 +85,9 @@ class TestMergeServiceUsage:
         usage = LlmUsage(prompt_tokens=200, completion_tokens=300)
         client = MockClient(
             response=(
-            "# GLOBAL\n- test\n# PROJECT\n\n# REPO\n\n# TEMPORARY\n\n"
-            "# DEPRECATED\n\n# OPEN_QUESTIONS\n"
-        ),
+                "# GLOBAL\n- test\n# PROJECT\n\n# REPO\n\n# TEMPORARY\n\n"
+                "# DEPRECATED\n\n# OPEN_QUESTIONS\n"
+            ),
             usage=usage,
         )
         service = MergeService()

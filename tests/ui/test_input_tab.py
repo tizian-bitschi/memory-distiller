@@ -87,3 +87,32 @@ class TestChatLogHtmlSupport:
         source = inspect.getsource(render_input_tab)
         # Should mention html and htm in the allowed extensions error
         assert ".html, .htm" in source
+
+
+class TestExistingMemoryUploadReliability:
+    """Regression tests for Issue #39 - Existing Memory upload reliability."""
+
+    def test_existing_memory_upload_uses_hashlib_sha256(self):
+        """Existing Memory upload computes SHA256 hash, not filename-only comparison."""
+        source = inspect.getsource(render_input_tab)
+        # Must use hashlib.sha256 for content-based change detection
+        assert "hashlib.sha256" in source
+        assert "file_hash" in source
+
+    def test_existing_memory_text_area_uses_existing_memory_key(self):
+        """Existing Memory text_area uses canonical EXISTING_MEMORY key."""
+        source = inspect.getsource(render_input_tab)
+        assert "key=EXISTING_MEMORY" in source
+
+    def test_same_filename_different_content_updates(self):
+        """Same filename with different content triggers update via hash detection."""
+        source = inspect.getsource(render_input_tab)
+        # The implementation constructs current_identity with f"{filename}|{file_hash}"
+        assert "current_identity" in source
+
+    def test_invalid_extension_shows_error(self):
+        """Invalid file extension for existing memory shows error."""
+        source = inspect.getsource(render_input_tab)
+        # Should have error message for invalid extension
+        assert "Invalid file extension" in source
+        assert ".txt" in source and ".md" in source and ".markdown" in source

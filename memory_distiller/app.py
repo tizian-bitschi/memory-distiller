@@ -123,10 +123,7 @@ with st.sidebar:
                 st.session_state[DEEPSEEK_BALANCE] = balance
                 if balance.is_available and balance.balance_infos:
                     for info in balance.balance_infos:
-                        st.write(
-                            f"**{info.currency}:** "
-                            f"{info.total_balance:.2f} {info.currency}"
-                        )
+                        st.write(f"**{info.currency}:** {info.total_balance:.2f} {info.currency}")
                         st.caption(
                             f"Granted: {info.granted_balance:.2f} {info.currency} | "
                             f"Topped up: {info.topped_up_balance:.2f} {info.currency}"
